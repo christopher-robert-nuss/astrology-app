@@ -6,6 +6,7 @@ from kerykeion.charts.chart_drawer import ChartDrawer  # For SVG if needed
 from kerykeion import ChartDataFactory
 from datetime import datetime
 import json
+from pathlib import Path
 
 app = FastAPI(title="Astrology API")
 
@@ -29,12 +30,16 @@ class BirthData(BaseModel):
     lat: float
     lng: float
     tz_str: str  # e.g., "Europe/Rome", "America/New_York"
+    city: str = None  # Optional city name
+    nation: str = None  # Optional nation code (ISO 3166-1 alpha-2)
+    zodiac_type: str = "Tropical"
     houses_system: str = "P"  # P = Placidus (default)
 
 
 @app.post("/chart")
 async def generate_chart(data: BirthData):
     try:
+        # Step 1: Create astrological subject from birth data
         subject = AstrologicalSubjectFactory.from_birth_data(
             name=data.name,
             year=data.year,
@@ -45,11 +50,13 @@ async def generate_chart(data: BirthData):
             lat=data.lat,
             lng=data.lng,
             tz_str=data.tz_str,
+            city=data.city,
+            nation=data.nation,
             online=False,
             houses_system_identifier=data.houses_system,
         )
 
-        # Generate full chart data (includes aspects, etc.)
+        # Step 2: Generate full chart data (includes aspects, etc.)
         chart_data = ChartDataFactory.create_natal_chart_data(subject)
 
         # Planets
@@ -107,6 +114,15 @@ async def generate_chart(data: BirthData):
                     "abs_pos": getattr(h, "abs_pos", None),
                 }
 
+        # Step 3: Create visualization normally with your true Brisbane data
+        chart_drawer = ChartDrawer(chart_data=chart_data)
+
+        # Step 4: Save the original SVG file
+        output_dir = Path("../frontend/public/charts_output")
+        output_dir.mkdir(exist_ok=True)
+        filename = f"{data.name.replace(' ', '-')}-chart"
+        chart_drawer.save_svg(output_path=output_dir, filename=filename)
+
         return {
             "name": subject.name,
             "date": f"{data.year}-{data.month:02d}-{data.day:02d} {data.hour:02d}:{data.minute:02d}",
@@ -124,9 +140,8 @@ async def generate_chart(data: BirthData):
                 if hasattr(subject, "tenth_house")
                 else None
             ),
-            "aspects": (
-                chart_data.aspects if hasattr(chart_data, "aspects") else []
-            ),  # Main addition
+            "aspects": (chart_data.aspects if hasattr(chart_data, "aspects") else []),
+            "svg_path": f"/charts_output/{filename}.svg",
             # Add more from chart_data as needed (e.g. chart_data.dignities, etc.)
         }
 
