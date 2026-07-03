@@ -22,4 +22,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    watch: {
+      // Use glob patterns to ignore directories
+      ignored: ['**/public/charts_output/**'],
+    },
+  },
 })

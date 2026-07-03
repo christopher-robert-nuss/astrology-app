@@ -1,3 +1,9 @@
+/public/charts_output/
+llms-full.txt
+astrology-app.code-workspace
+/backend/birth_charts.db
+*.pyc
+
 # Logs
 logs
 *.log
