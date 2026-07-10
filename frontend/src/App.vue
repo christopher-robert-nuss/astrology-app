@@ -187,7 +187,7 @@
         <img :src="svgUrl" :key="svgUrl" alt="Birth Chart" />
       </div>
 
-      <div v-if="chartData" class="mt-8">
+      <!-- <div v-if="chartData" class="mt-8">
         <Card>
           <template #title> Generated Chart Data</template>
           <template #content>
@@ -196,7 +196,7 @@
             </div>
           </template>
         </Card>
-      </div>
+      </div> -->
 
       <!-- Saved Persons Section -->
       <Card class="mt-8 shadow-lg">
