@@ -2,7 +2,12 @@
 llms-full.txt
 astrology-app.code-workspace
 /backend/birth_charts.db
-*.pyc
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
 
 # Logs
 logs

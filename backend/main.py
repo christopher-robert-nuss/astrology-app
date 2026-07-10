@@ -293,7 +293,11 @@ async def generate_chart(data: BirthData):
             if svg_path.exists():
                 svg_path.unlink()  # Delete old one first
 
-            chart_drawer.save_svg(output_path=output_dir, filename=filename)
+            chart_drawer.save_svg(output_path=str(output_dir), filename=filename)
+
+            # Verify it was written
+            if not svg_path.exists():
+                raise Exception("SVG file was not created after save_svg call")
 
         except Exception as svg_err:
             print(f"SVG save failed: {svg_err}")  # Log it
