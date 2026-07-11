@@ -1,5 +1,6 @@
 from fileinput import filename
-
+import os
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -14,6 +15,10 @@ from typing import List, Optional
 from pydantic import BaseModel, field_validator, ValidationError
 
 app = FastAPI(title="Astrology API")
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8080))  # Default to 8080
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 # Database setup - simple SQLite for standalone offline use
 DB_PATH = Path("birth_charts.db")
