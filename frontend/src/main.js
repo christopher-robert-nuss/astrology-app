@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import PrimeVue from 'primevue/config'
+import ToastService from 'primevue/toastservice'
 import { definePreset } from '@primeuix/themes'
 import Aura from '@primeuix/themes/aura'
 import Material from '@primeuix/themes/material'
@@ -686,5 +687,7 @@ app.use(PrimeVue, {
     },
   },
 })
+
+app.use(ToastService)
 
 app.mount('#app')
