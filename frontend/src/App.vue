@@ -222,27 +222,31 @@
         </div>
 
         <!-- Right Side: Chart Display -->
-        <div class="flex-1 min-w-0 min-h-150">
-          <div
-            class="bg-white shadow-lg border border-gray-200 p-6 lg:p-8 min-h-150 flex flex-col items-center justify-center"
-          >
-            <!-- Chart content unchanged -->
-            <div v-if="svgUrl" class="w-full flex flex-col items-center">
-              <img
-                :src="svgUrl"
-                :key="svgUrl"
-                alt="Birth Chart"
-                class="max-w-full h-auto border border-gray-200 shadow-md mb-6"
-              />
-              <Button
-                label="View Full Screen"
-                icon="pi pi-external-link"
-                @click="showFullScreen = true"
-                severity="secondary"
-              />
+        <div class="flex-1 min-w-0 h-screen max-h-screen overflow-hidden">
+          <div class="bg-white h-full max-h-screen overflow-hidden">
+            <div v-if="svgUrl" class="h-full max-h-screen flex flex-col p-6 lg:p-8 overflow-hidden">
+              <div class="flex-1 min-h-0 flex justify-center items-center">
+                <img
+                  :src="svgUrl"
+                  :key="svgUrl"
+                  alt="Birth Chart"
+                  class="w-full max-w-full max-h-full object-contain border border-gray-200 shadow-md"
+                />
+              </div>
+              <div class="pt-4 flex justify-center shrink-0">
+                <Button
+                  label="View Full Screen"
+                  icon="pi pi-external-link"
+                  @click="showFullScreen = true"
+                  severity="secondary"
+                />
+              </div>
             </div>
 
-            <div v-else class="text-center text-gray-400">
+            <div
+              v-else
+              class="h-full max-h-screen flex items-center justify-center text-center text-gray-400 p-6 lg:p-8"
+            >
               <i class="pi pi-chart-line text-6xl mb-4"></i>
               <p class="text-xl">Your birth chart will appear here</p>
               <p class="text-sm mt-2">Fill the form and click Generate Chart</p>
