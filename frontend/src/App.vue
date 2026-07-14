@@ -226,12 +226,35 @@
           <div class="bg-white h-full max-h-screen overflow-hidden">
             <div v-if="svgUrl" class="h-full max-h-screen flex flex-col p-6 lg:p-8 overflow-hidden">
               <div class="flex-1 min-h-0 flex justify-center items-center">
-                <img
-                  :src="svgUrl"
-                  :key="svgUrl"
-                  alt="Birth Chart"
-                  class="w-full max-w-full max-h-full object-contain border border-gray-200 shadow-md"
-                />
+                <div class="relative w-full max-w-full max-h-full flex justify-center items-center">
+                  <img
+                    :src="svgUrl"
+                    :key="svgUrl"
+                    alt="Birth Chart"
+                    class="w-full max-w-full max-h-full object-contain border border-gray-200 shadow-md"
+                  />
+                  <Button
+                    icon="pi pi-search-plus"
+                    severity="secondary"
+                    rounded
+                    class="absolute right-2 top-2 z-20 bg-white/90 border border-gray-300 shadow-sm"
+                    @click="toggleMagnifier"
+                    aria-label="Toggle zoom"
+                  />
+                  <div
+                    v-if="showMagnifier"
+                    class="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded border border-gray-300 bg-white shadow-lg"
+                  >
+                    <div
+                      class="h-full w-full bg-no-repeat bg-cover"
+                      :style="{
+                        backgroundImage: `url(${svgUrl})`,
+                        backgroundPosition: `${magnifierX}% ${magnifierY}%`,
+                        backgroundSize: `${magnifierScale * 100}% ${magnifierScale * 100}%`,
+                      }"
+                    />
+                  </div>
+                </div>
               </div>
               <div class="pt-4 flex justify-center shrink-0">
                 <Button
@@ -283,6 +306,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { invoke } from '@tauri-apps/api/core'
 
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -293,6 +317,15 @@ import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+
+async function initBackend() {
+  try {
+    const result = await invoke('start_backend')
+    console.log(result)
+  } catch (error) {
+    console.error('Failed to start backend:', error)
+  }
+}
 
 const formData = ref({
   name: '',
@@ -314,7 +347,13 @@ const chartData = ref()
 const loading = ref(false)
 const svgUrl = ref()
 const showFullScreen = ref(false)
-
+const showMagnifier = ref(false)
+const magnifierX = ref(50)
+const magnifierY = ref(50)
+const magnifierScale = 1.8
+const toggleMagnifier = () => {
+  showMagnifier.value = !showMagnifier.value
+}
 const persons = ref([])
 const loadingPersons = ref(false)
 const toast = useToast()
@@ -444,6 +483,7 @@ const deletePerson = async (id) => {
 }
 
 onMounted(() => {
+  initBackend()
   loadPersons()
 })
 </script>

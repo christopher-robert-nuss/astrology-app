@@ -18,7 +18,7 @@ app = FastAPI(title="Astrology API")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))  # Default to 8080
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="127.0.0.1", port=port)
 
 # Database setup - simple SQLite for standalone offline use
 DB_PATH = Path("birth_charts.db")
