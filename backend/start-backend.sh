@@ -6,4 +6,4 @@ echo "Checking port $PORT..."
 sudo lsof -t -i:$PORT | xargs kill -9 2>/dev/null || true
 
 echo "Starting FastAPI on port $PORT..."
-uvicorn main:app --host 0.0.0.0 --port $PORT --reload
+uvicorn main:app --host 127.0.0.1 --port $PORT --reload

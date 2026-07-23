@@ -1,0 +1,11 @@
+uvicorn
+fastapi
+pydantic
+kerykeion
+json
+Path
+sqlite3
+typing
+sys
+appdirs
+
