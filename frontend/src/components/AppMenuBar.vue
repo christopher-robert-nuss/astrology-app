@@ -34,7 +34,7 @@ const pt = {
   // Link element
   itemLink: ({ context }) => ({
     class: [
-      'flex-1 flex items-center gap-x-2 no-underline text-sm font-medium',
+      'flex-1 flex items-center gap-x-2 no-underline text-sm font-medium rounded-none!',
       context.active ? 'text-primary-700' : 'text-surface-700 hover:text-surface-900',
       context.focused && 'text-surface-900',
     ],
