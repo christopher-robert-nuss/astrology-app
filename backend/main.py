@@ -2,10 +2,8 @@ import os
 import uvicorn
 import json
 from pathlib import Path
-import sqlite3
-from typing import List, Optional
+from typing import Optional
 import sys
-import appdirs
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,11 +21,10 @@ app = FastAPI(title="Astrology API")
 # ====================== DIRECTORY SETUP ======================
 print("[Backend] Forcing DEVELOPMENT mode")
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "../frontend/public/charts_output"
+DATA_DIR = BASE_DIR / "../frontend/public"
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-DB_PATH = DATA_DIR / "birth_charts.db"
 STATIC_CHART_DIR = DATA_DIR / "charts_output"
 STATIC_CHART_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -43,36 +40,6 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
     uvicorn.run(app, host="127.0.0.1", port=port)
 
-
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS persons (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            year INTEGER,
-            month INTEGER,
-            day INTEGER,
-            hour INTEGER,
-            minute INTEGER,
-            lat REAL,
-            lng REAL,
-            tz_str TEXT,
-            city TEXT,
-            nation TEXT,
-            zodiac_type TEXT DEFAULT 'Tropical',
-            houses_system TEXT DEFAULT 'P',
-            chart_data TEXT,
-            svg_path TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-
-init_db()
 
 # CORS for Vue dev server
 app.add_middleware(
@@ -105,115 +72,6 @@ class BirthData(BaseModel):
         if v is None:
             raise ValueError(f"{info.field_name} is required")
         return v
-
-
-class PersonResponse(BaseModel):
-    id: int
-    name: str
-    year: int
-    month: int
-    day: int
-    hour: int
-    minute: int
-    lat: float
-    lng: float
-    tz_str: str
-    city: Optional[str] = None
-    nation: Optional[str] = None
-    zodiac_type: str
-    houses_system: str
-    chart_data: Optional[dict] = None
-    svg_path: Optional[str] = None
-    created_at: str
-
-
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-@app.post("/persons")
-async def save_person(data: BirthData):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO persons 
-            (name, year, month, day, hour, minute, lat, lng, tz_str, city, nation, zodiac_type, houses_system)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                data.name,
-                data.year,
-                data.month,
-                data.day,
-                data.hour,
-                data.minute,
-                data.lat,
-                data.lng,
-                data.tz_str,
-                data.city,
-                data.nation,
-                data.zodiac_type,
-                data.houses_system,
-            ),
-        )
-        person_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        return {"id": person_id, "message": "Person saved successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.get("/persons", response_model=List[PersonResponse])
-async def list_persons():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM persons ORDER BY created_at DESC")
-    rows = cursor.fetchall()
-    conn.close()
-
-    persons = []
-    for row in rows:
-        person = dict(row)
-        if person["chart_data"]:
-            person["chart_data"] = json.loads(person["chart_data"])
-        persons.append(person)
-    return persons
-
-
-@app.get("/persons/{person_id}")
-async def get_person(person_id: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM persons WHERE id = ?", (person_id,))
-    row = cursor.fetchone()
-    conn.close()
-
-    if not row:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    person = dict(row)
-    if person["chart_data"]:
-        person["chart_data"] = json.loads(person["chart_data"])
-    return person
-
-
-@app.delete("/persons/{person_id}")
-async def delete_person(person_id: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM persons WHERE id = ?", (person_id,))
-    conn.commit()
-    deleted = cursor.rowcount > 0
-    conn.close()
-
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {"message": "Person deleted successfully"}
 
 
 @app.post("/chart")
@@ -297,51 +155,19 @@ async def generate_chart(data: BirthData):
         svg_full_path = f"/charts_output/{filename}.svg"
 
         try:
-            output_dir = STATIC_CHART_DIR
-            output_dir.mkdir(parents=True, exist_ok=True)
-            svg_path = output_dir / f"{filename}.svg"
+            STATIC_CHART_DIR.mkdir(parents=True, exist_ok=True)
+            svg_path = STATIC_CHART_DIR / f"{filename}.svg"
 
             if svg_path.exists():
                 svg_path.unlink()
 
-            chart_drawer.save_svg(output_path=str(output_dir), filename=filename)
+            chart_drawer.save_svg(output_path=str(STATIC_CHART_DIR), filename=filename)
 
             if not svg_path.exists():
                 raise Exception("SVG file was not created")
         except Exception as svg_err:
             print(f"SVG save failed: {svg_err}")
             svg_full_path = None
-
-        # Update DB (optional)
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                UPDATE persons 
-                SET chart_data = ?, svg_path = ?
-                WHERE name = ? AND year = ? AND month = ? AND day = ? 
-                ORDER BY id DESC LIMIT 1
-            """,
-                (
-                    json.dumps(
-                        {
-                            "planets": planets_data,
-                            "houses": houses_data,
-                            "aspects": getattr(chart_data, "aspects", []),
-                        }
-                    ),
-                    svg_full_path,
-                    data.name,
-                    data.year,
-                    data.month,
-                    data.day,
-                ),
-            )
-            conn.commit()
-            conn.close()
-        except Exception:
-            pass
 
         return {
             "name": subject.name,

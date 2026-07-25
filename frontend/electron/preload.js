@@ -10,12 +10,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // API proxy
   apiRequest: (options) => ipcRenderer.invoke('api-request', options),
 
-  // Convenience methods
-  savePerson: (data) =>
-    ipcRenderer.invoke('api-request', { method: 'POST', endpoint: '/persons', body: data }),
-  generateChart: (data) =>
-    ipcRenderer.invoke('api-request', { method: 'POST', endpoint: '/chart', body: data }),
-  listPersons: () => ipcRenderer.invoke('api-request', { method: 'GET', endpoint: '/persons' }),
+  // File operations
+  saveChartFile: (data, suggestedName) =>
+    ipcRenderer.invoke('save-chart-file', data, suggestedName),
+  openChartFile: () => ipcRenderer.invoke('open-chart-file'),
+  openRecentFile: (filePath) => ipcRenderer.invoke('open-recent-file', filePath),
+  getRecentFiles: () => ipcRenderer.invoke('get-recent-files'),
 
   showAbout: () => ipcRenderer.send('show-about'),
   quitApp: () => ipcRenderer.send('app-quit'),

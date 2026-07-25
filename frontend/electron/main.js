@@ -1,8 +1,8 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { spawn } from 'child_process'
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 process.env.NODE_ENV = process.env.NODE_ENV || 'development'
@@ -99,6 +99,91 @@ ipcMain.handle('api-request', async (event, { method, endpoint, body }) => {
 ipcMain.on('app-quit', () => {
   if (backendProcess) backendProcess.kill()
   app.quit()
+})
+
+// ====================== FILE OPERATIONS ======================
+
+function getRecentFilesPath() {
+  return path.join(app.getPath('userData'), 'recent-files.json')
+}
+
+function readRecentFiles() {
+  try {
+    const filePath = getRecentFilesPath()
+    if (existsSync(filePath)) {
+      return JSON.parse(readFileSync(filePath, 'utf8'))
+    }
+  } catch (err) {
+    console.warn('Could not read recent files:', err.message)
+  }
+  return []
+}
+
+function saveRecentFile(filePath, name) {
+  try {
+    let recent = readRecentFiles()
+    recent = recent.filter((f) => f.filePath !== filePath)
+    recent.unshift({ filePath, name })
+    recent = recent.slice(0, 10)
+    writeFileSync(getRecentFilesPath(), JSON.stringify(recent, null, 2), 'utf8')
+  } catch (err) {
+    console.warn('Could not save recent file:', err.message)
+  }
+}
+
+ipcMain.handle('save-chart-file', async (event, data, suggestedName) => {
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    title: 'Save Chart',
+    defaultPath: `${suggestedName || 'chart'}.json`,
+    filters: [{ name: 'Chart Files', extensions: ['json'] }],
+  })
+  if (canceled || !filePath) return { success: false }
+
+  try {
+    writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8')
+    saveRecentFile(filePath, path.basename(filePath, '.json'))
+    return { success: true, filePath }
+  } catch (err) {
+    console.error('Save chart failed:', err)
+    throw new Error(`Failed to save file: ${err.message}`)
+  }
+})
+
+ipcMain.handle('open-chart-file', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    title: 'Open Chart',
+    filters: [{ name: 'Chart Files', extensions: ['json'] }],
+    properties: ['openFile'],
+  })
+  if (canceled || !filePaths.length) return null
+
+  try {
+    const filePath = filePaths[0]
+    const content = readFileSync(filePath, 'utf8')
+    const data = JSON.parse(content)
+    saveRecentFile(filePath, path.basename(filePath, '.json'))
+    return { ...data, filePath }
+  } catch (err) {
+    console.error('Open chart failed:', err)
+    throw new Error(`Failed to open file: ${err.message}`)
+  }
+})
+
+ipcMain.handle('open-recent-file', async (event, filePath) => {
+  try {
+    if (!existsSync(filePath)) throw new Error('File not found')
+    const content = readFileSync(filePath, 'utf8')
+    const data = JSON.parse(content)
+    saveRecentFile(filePath, path.basename(filePath, '.json'))
+    return { ...data, filePath }
+  } catch (err) {
+    console.error('Open recent file failed:', err)
+    throw new Error(`Failed to open file: ${err.message}`)
+  }
+})
+
+ipcMain.handle('get-recent-files', () => {
+  return readRecentFiles()
 })
 
 ipcMain.on('show-about', () => {

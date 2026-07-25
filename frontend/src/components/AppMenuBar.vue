@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, inject } from 'vue'
 import Menubar from 'primevue/menubar'
 
 const pt = {
@@ -75,13 +75,31 @@ const pt = {
   },
 }
 
+// Injected from App.vue
+const doSaveChart = inject('saveChart', () => {})
+const doOpenChart = inject('openChart', () => {})
+const recentFiles = inject('recentFiles', ref([]))
+const doOpenRecentFile = inject('openRecentFile', () => {})
+
 // Menu items relevant to the Astrological Birth Chart app
-const items = ref([
+const items = computed(() => [
   {
     label: 'File',
     items: [
       { label: 'New Chart', icon: 'pi pi-plus', command: () => newChart() },
       { label: 'Open...', icon: 'pi pi-folder-open', command: () => openChart() },
+      {
+        label: 'Recent Files',
+        icon: 'pi pi-history',
+        items:
+          recentFiles.value.length > 0
+            ? recentFiles.value.map((f) => ({
+                label: f.name,
+                icon: 'pi pi-file',
+                command: () => doOpenRecentFile(f.filePath),
+              }))
+            : [{ label: 'No Recent Files', disabled: true }],
+      },
       { separator: true },
       { label: 'Save', icon: 'pi pi-save', command: () => saveChart() },
       { label: 'Save As...', icon: 'pi pi-save', command: () => saveChartAs() },
@@ -97,17 +115,7 @@ const items = ref([
   },
   {
     label: 'View',
-    items: [
-      { label: 'Show Aspects', icon: 'pi pi-chart-line', command: () => toggleAspects() },
-      {
-        label: 'Theme',
-        items: [
-          { label: 'Light', command: () => setTheme('light') },
-          { label: 'Dark', command: () => setTheme('dark') },
-          { label: 'GTK Style', command: () => setTheme('gtk') },
-        ],
-      },
-    ],
+    items: [{ label: 'Show Aspects', icon: 'pi pi-chart-line', command: () => toggleAspects() }],
   },
   {
     label: 'Help',
@@ -118,23 +126,14 @@ const items = ref([
   },
 ])
 
-// Menu command handlers (connect these to your app logic / stores / composables)
+// Menu command handlers
 const newChart = () => {
   // Reset form
   window.location.reload() // temporary
 }
-const openChart = () => {
-  /* load from SQLite */
-}
-const saveChart = () => {
-  /* save current chart */
-}
-const saveChartAs = () => {
-  /* save dialog */
-}
-const exportChart = () => {
-  /* PNG / PDF export */
-}
+const openChart = () => doOpenChart()
+const saveChart = () => doSaveChart()
+const saveChartAs = () => doSaveChart()
 
 // In App.vue or your Menu Component
 const handlePrint = async () => {

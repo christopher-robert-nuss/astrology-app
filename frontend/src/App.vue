@@ -153,80 +153,13 @@
                         type="submit"
                         label="Generate Chart"
                         :loading="loading"
-                        class="flex-1"
+                        class="w-full"
                         icon="pi pi-chart-line"
-                        :pt="{ label: { class: 'text-xs p-1' } }"
-                      />
-                      <Button
-                        type="button"
-                        label="Save to Library"
-                        @click="saveCurrent"
-                        severity="success"
-                        class="flex-1"
-                        icon="pi pi-save"
                         :pt="{ label: { class: 'text-xs p-1' } }"
                       />
                     </div>
                   </div>
                 </form>
-              </div>
-
-              <!-- Saved Birth Charts -->
-              <div class="bg-white shadow-lg border border-gray-200 overflow-hidden mt-auto">
-                <div
-                  class="px-4 py-3 border-b border-b-gray-200 flex justify-between items-center bg-gray-50"
-                >
-                  <span class="font-semibold mr-2">Saved Birth Charts</span>
-                  <Button
-                    label="Refresh"
-                    icon="pi pi-refresh"
-                    @click="loadPersons"
-                    size="small"
-                    :pt="{ label: { class: 'text-xs p-1' } }"
-                  />
-                </div>
-                <div class="p-4">
-                  <DataTable
-                    :value="persons"
-                    :loading="loadingPersons"
-                    size="small"
-                    class="text-sm w-full"
-                  >
-                    <Column field="name">
-                      <template #header>
-                        <div class="font-bold text-left w-full">Name</div>
-                      </template>
-                    </Column>
-                    <Column field="date">
-                      <template #header>
-                        <div class="font-bold text-left w-full">Birth Date</div>
-                      </template>
-                    </Column>
-                    <Column style="width: 200px; text-align: right">
-                      <template #header>
-                        <div class="font-bold text-right w-full">Actions</div>
-                      </template>
-                      <template #body="slotProps">
-                        <div class="flex justify-end gap-2">
-                          <Button
-                            icon="pi pi-folder-open"
-                            severity="secondary"
-                            size="small"
-                            @click="loadPerson(slotProps.data.id)"
-                            class="text-xs px-2 py-1"
-                          />
-                          <Button
-                            icon="pi pi-trash"
-                            severity="danger"
-                            size="small"
-                            @click="deletePerson(slotProps.data.id)"
-                            class="text-xs px-2 py-1"
-                          />
-                        </div>
-                      </template>
-                    </Column>
-                  </DataTable>
-                </div>
               </div>
             </div>
 
@@ -321,17 +254,15 @@
 
 <script setup>
 import AppMenuBar from './components/AppMenuBar.vue'
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, provide } from 'vue'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 
 const formData = ref({
-  name: 'Test User',
+  name: 'Christopher Robert Nuss',
   year: 1972,
   month: 1,
   day: 24,
@@ -354,8 +285,7 @@ const showMagnifier = ref(false)
 const magnifierX = ref(50)
 const magnifierY = ref(50)
 const magnifierScale = 1.8
-const persons = ref([])
-const loadingPersons = ref(false)
+const recentFiles = ref([])
 const toast = useToast()
 
 // Helper to call backend via IPC
@@ -387,7 +317,6 @@ const generateChart = async () => {
     }
 
     toast.add({ severity: 'success', summary: 'Chart Generated', life: 3000 })
-    loadPersons()
   } catch (e) {
     console.error('Chart generation error:', e)
     toast.add({
@@ -401,74 +330,59 @@ const generateChart = async () => {
   }
 }
 
-const saveCurrent = async () => {
-  if (!formData.value.name) return toast.add({ severity: 'warn', summary: 'Name required' })
+const loadRecentFiles = async () => {
   try {
-    await apiCall('POST', '/persons', { ...formData.value })
-    toast.add({ severity: 'success', summary: 'Saved successfully!' })
-    loadPersons()
+    recentFiles.value = await window.electronAPI.getRecentFiles()
+  } catch (e) {
+    console.error('Failed to load recent files:', e)
+  }
+}
+
+const saveChartToFile = async () => {
+  if (!chartData.value) {
+    toast.add({
+      severity: 'warn',
+      summary: 'No chart to save',
+      detail: 'Generate a chart first',
+      life: 3000,
+    })
+    return
+  }
+  try {
+    const payload = JSON.parse(
+      JSON.stringify({ version: '1.0', birthData: formData.value, chartData: chartData.value }),
+    )
+    const result = await window.electronAPI.saveChartFile(payload, formData.value.name || 'chart')
+    if (result?.success) {
+      toast.add({ severity: 'success', summary: 'Chart saved', life: 3000 })
+      await loadRecentFiles()
+    }
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Save failed', detail: e.message })
   }
 }
 
-const loadPersons = async () => {
-  loadingPersons.value = true
+const openChartFromFile = async () => {
   try {
-    const res = await apiCall('GET', '/persons')
-    persons.value = res.map((p) => ({
-      ...p,
-      date: `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`,
-    }))
+    const result = await window.electronAPI.openChartFile()
+    if (!result) return
+    formData.value = { ...formData.value, ...result.birthData }
+    await generateChart()
+    await loadRecentFiles()
   } catch (e) {
-    console.error(e)
-    toast.add({ severity: 'error', summary: 'Failed to load persons' })
-  } finally {
-    loadingPersons.value = false
+    toast.add({ severity: 'error', summary: 'Open failed', detail: e.message })
   }
 }
 
-const loadPerson = async (id) => {
-  loading.value = true
+const openRecentChartFile = async (filePath) => {
   try {
-    const p = await apiCall('GET', `/persons/${id}`)
-    // Populate form (unchanged logic)
-    formData.value = {
-      name: p.name || '',
-      year: p.year,
-      month: p.month,
-      day: p.day,
-      hour: p.hour,
-      minute: p.minute,
-      lat: p.lat,
-      lng: p.lng,
-      tz_str: p.tz_str || '',
-      city: p.city || '',
-      nation: p.nation || '',
-      zodiac_type: p.zodiac_type || 'Tropical',
-      houses_system: p.houses_system || 'P',
-    }
-
-    if (p.svg_path) {
-      svgUrl.value = `http://127.0.0.1:8080${p.svg_path.startsWith('/') ? '' : '/'}${p.svg_path}`
-    }
-    chartData.value = p.chart_data || null
-    toast.add({ severity: 'success', summary: `Loaded ${p.name}` })
+    const result = await window.electronAPI.openRecentFile(filePath)
+    if (!result) return
+    formData.value = { ...formData.value, ...result.birthData }
+    await generateChart()
+    await loadRecentFiles()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Load failed', detail: e.message })
-  } finally {
-    loading.value = false
-  }
-}
-
-const deletePerson = async (id) => {
-  if (!confirm('Delete this record?')) return
-  try {
-    await apiCall('DELETE', `/persons/${id}`)
-    loadPersons()
-    toast.add({ severity: 'success', summary: 'Deleted' })
-  } catch (e) {
-    toast.add({ severity: 'error', summary: 'Delete failed' })
+    toast.add({ severity: 'error', summary: 'Open failed', detail: e.message })
   }
 }
 
@@ -476,7 +390,13 @@ const toggleMagnifier = () => {
   showMagnifier.value = !showMagnifier.value
 }
 
-// Auto-start backend + load data
+// Provide to child components (AppMenuBar)
+provide('saveChart', saveChartToFile)
+provide('openChart', openChartFromFile)
+provide('recentFiles', recentFiles)
+provide('openRecentFile', openRecentChartFile)
+
+// Auto-start backend
 onMounted(async () => {
   window.addEventListener('theme-updated', (e) => {
     // Sync PrimeVue/Tailwind dark mode if needed
@@ -487,7 +407,6 @@ onMounted(async () => {
     }
   })
   await window.electronAPI.startBackend() // Ensures backend is running
-
-  loadPersons()
+  await loadRecentFiles()
 })
 </script>
