@@ -2,5 +2,62 @@
 @import 'tailwindcss-primeui';
 
 @custom-variant dark (&:where(.app-dark, .app-dark *));
+@custom-variant print (@media print);
 
 @layer tailwind-base, primevue, tailwind-utilities;
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0.5cm;
+  }
+
+  /* 1. Hide everything */
+  body,
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* 2. The Wrapper: Full-page flex container */
+  .print-chart-image {
+    visibility: visible !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  /* 3. The Image: Scales and has the border */
+  .print-chart-image img {
+    visibility: visible !important;
+    display: block !important; /* Crucial: removes inline spacing gaps */
+
+    /* Scale to fit */
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+
+    /* The Border */
+    border: 2px solid black !important;
+    box-sizing: border-box !important;
+
+    /* CRITICAL: Force browser to print borders and backgrounds */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide any other children */
+  .print-chart-image > *:not(img) {
+    display: none !important;
+  }
+}

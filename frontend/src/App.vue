@@ -245,7 +245,7 @@
                         :src="svgUrl"
                         :key="svgUrl"
                         alt="Birth Chart"
-                        class="w-full max-w-full max-h-full object-contain border border-gray-200 shadow-md"
+                        class="print-chart-image"
                       />
                       <Button
                         icon="pi pi-search-plus"
@@ -321,7 +321,7 @@
 
 <script setup>
 import AppMenuBar from './components/AppMenuBar.vue'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
@@ -487,6 +487,7 @@ onMounted(async () => {
     }
   })
   await window.electronAPI.startBackend() // Ensures backend is running
+
   loadPersons()
 })
 </script>

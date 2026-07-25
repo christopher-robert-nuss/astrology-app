@@ -87,7 +87,7 @@ const items = ref([
       { label: 'Save As...', icon: 'pi pi-save', command: () => saveChartAs() },
       { label: 'Export Chart', icon: 'pi pi-export', command: () => exportChart() },
       { separator: true },
-      { label: 'Print...', icon: 'pi pi-print', command: () => printChart() },
+      { label: 'Print...', icon: 'pi pi-print', command: () => handlePrint() },
       { separator: true },
       { label: 'Exit', icon: 'pi pi-power-off', command: () => exitApp() },
     ],
@@ -169,7 +169,35 @@ const exportChart = () => {
   /* PNG / PDF export */
 }
 
-const printChart = () => window.print()
+// In App.vue or your Menu Component
+const handlePrint = async () => {
+  const img = document.querySelector('.print-chart-image')
+
+  if (!img) {
+    console.error('Target image not found')
+    return
+  }
+
+  // Wait for image to be fully loaded
+  const ensureLoaded = new Promise((resolve) => {
+    if (img.complete) {
+      resolve()
+    } else {
+      img.onload = resolve
+      img.onerror = () => {
+        console.warn('Image failed to load, proceeding anyway')
+        resolve()
+      }
+    }
+  })
+
+  await ensureLoaded
+
+  // Small delay to ensure DOM paints before print dialog opens
+  setTimeout(() => {
+    window.print()
+  }, 100)
+}
 
 const exitApp = () => {
   console.log('Exit requested via menu')
