@@ -1,22 +1,100 @@
 import os
 import uvicorn
 import json
+import re
+
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 import sys
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from pydantic import BaseModel
-from pydantic import BaseModel, field_validator, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from kerykeion import AstrologicalSubjectFactory
 from kerykeion.charts.chart_drawer import ChartDrawer
 from kerykeion import ChartDataFactory
+from kerykeion.settings.config_constants import DEFAULT_ACTIVE_ASPECTS
 
 app = FastAPI(title="Astrology API")
+
+ZODIAC_TYPES = ("Tropical", "Sidereal")
+HOUSE_SYSTEM_OPTIONS = {
+    "A": "Equal",
+    "B": "Alcabitius",
+    "C": "Campanus",
+    "D": "Porphyry",
+    "F": "Carter Poli-Equatorial",
+    "H": "Horizontal",
+    "I": "Sunshine",
+    "i": "Sunshine Alternative",
+    "K": "Koch",
+    "L": "Pullen SD",
+    "M": "Morinus",
+    "N": "Whole Sign",
+    "O": "Porphyry",
+    "P": "Placidus",
+    "Q": "Pullen SR",
+    "R": "Regiomontanus",
+    "S": "Sripati",
+    "T": "Polich-Page",
+    "U": "Krusinski-Pisa",
+    "V": "Vehlow",
+    "W": "Whole Sign",
+    "X": "Axial Rotation",
+    "Y": "APC",
+}
+
+
+def _aspect_name(aspect: dict[str, Any]) -> str:
+    return str(aspect.get("name", "")).strip()
+
+
+SUPPORTED_ASPECTS = tuple(
+    _aspect_name(aspect) for aspect in DEFAULT_ACTIVE_ASPECTS if _aspect_name(aspect)
+)
+DEFAULT_ASPECTS_ENABLED = {name: False for name in SUPPORTED_ASPECTS}
+
+
+def _normalize_aspects_enabled(value: Any) -> dict[str, bool]:
+    if isinstance(value, bool):
+        return {name: value for name in SUPPORTED_ASPECTS}
+
+    if value is None:
+        return dict(DEFAULT_ASPECTS_ENABLED)
+
+    if not isinstance(value, dict):
+        raise ValueError("aspects_enabled must be a boolean or an object map")
+
+    unknown = [key for key in value if key not in SUPPORTED_ASPECTS]
+    if unknown:
+        raise ValueError(f"Unsupported aspects: {', '.join(sorted(unknown))}")
+
+    normalized = dict(DEFAULT_ASPECTS_ENABLED)
+    for key, enabled in value.items():
+        if not isinstance(enabled, bool):
+            raise ValueError(f"Aspect '{key}' must be true or false")
+        normalized[key] = enabled
+
+    return normalized
+
+
+def _get_preferences_path() -> Path:
+    configured_path = os.getenv("ASTROLOGY_APP_PREFERENCES_PATH")
+    if configured_path:
+        return Path(configured_path).expanduser().resolve()
+
+    if sys.platform == "win32":
+        base_dir = Path(os.getenv("APPDATA", Path.home()))
+    elif sys.platform == "darwin":
+        base_dir = Path.home() / "Library" / "Application Support"
+    else:
+        base_dir = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
+
+    return base_dir / "simple-astro-chart" / "preferences.json"
+
 
 # ====================== DIRECTORY SETUP ======================
 print("[Backend] Forcing DEVELOPMENT mode")
@@ -74,9 +152,130 @@ class BirthData(BaseModel):
         return v
 
 
-@app.post("/chart")
-async def generate_chart(data: BirthData):
+class Preferences(BaseModel):
+    zodiac_type: str = "Tropical"
+    houses_system: str = "P"
+    aspects_enabled: dict[str, bool] = Field(
+        default_factory=lambda: dict(DEFAULT_ASPECTS_ENABLED)
+    )
+
+    @field_validator("zodiac_type")
+    @classmethod
+    def validate_zodiac_type(cls, value: str) -> str:
+        if value not in ZODIAC_TYPES:
+            raise ValueError(f"zodiac_type must be one of: {', '.join(ZODIAC_TYPES)}")
+        return value
+
+    @field_validator("houses_system")
+    @classmethod
+    def validate_house_system(cls, value: str) -> str:
+        if value not in HOUSE_SYSTEM_OPTIONS:
+            raise ValueError(
+                f"houses_system must be one of: {', '.join(sorted(HOUSE_SYSTEM_OPTIONS.keys()))}"
+            )
+        return value
+
+    @field_validator("aspects_enabled", mode="before")
+    @classmethod
+    def validate_aspects_enabled(cls, value: Any) -> dict[str, bool]:
+        return _normalize_aspects_enabled(value)
+
+
+class ChartRequest(BaseModel):
+    data: BirthData
+    data2: Optional[Preferences] = None
+
+
+def _save_preferences(preferences: Preferences) -> None:
+    path = _get_preferences_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    payload = preferences.model_dump()
+    temp_path = path.with_suffix(".tmp")
+    temp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    temp_path.replace(path)
+
+
+def _load_preferences() -> Preferences:
+    path = _get_preferences_path()
+
+    if not path.exists():
+        defaults = Preferences()
+        _save_preferences(defaults)
+        return defaults
+
     try:
+        raw_data = json.loads(path.read_text(encoding="utf-8"))
+        return Preferences.model_validate(raw_data)
+    except (json.JSONDecodeError, ValidationError, OSError) as error:
+        print(f"[Backend] Preferences file invalid, resetting to defaults: {error}")
+        defaults = Preferences()
+        _save_preferences(defaults)
+        return defaults
+
+
+def _get_active_aspects(preferences: Preferences) -> list[dict[str, Any]]:
+    active_names = {
+        name for name, is_enabled in preferences.aspects_enabled.items() if is_enabled
+    }
+    return [
+        aspect
+        for aspect in DEFAULT_ACTIVE_ASPECTS
+        if _aspect_name(aspect) in active_names
+    ]
+
+
+def _strip_aspect_matrix_from_svg(svg_markup: str) -> str:
+    # Keep the full chart layout and metadata tables, but remove only aspect sections.
+    patterns = [
+        r"<g\s+kr:node='Aspect_Grid'.*?</g>",
+        r"<g\s+kr:node='Aspect_List'.*?</g>",
+    ]
+
+    cleaned = svg_markup
+    for pattern in patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.DOTALL)
+
+    return cleaned
+
+
+@app.get("/preferences")
+async def get_preferences():
+    return _load_preferences().model_dump()
+
+
+@app.put("/preferences")
+async def update_preferences(preferences: Preferences):
+    _save_preferences(preferences)
+    return preferences.model_dump()
+
+
+@app.get("/preferences/options")
+async def get_preferences_options():
+    return {
+        "zodiac_types": list(ZODIAC_TYPES),
+        "house_systems": [
+            {"code": code, "label": label}
+            for code, label in HOUSE_SYSTEM_OPTIONS.items()
+        ],
+        "aspects": [
+            {
+                "key": _aspect_name(aspect),
+                "label": _aspect_name(aspect).replace("_", " ").title(),
+                "default_orb": aspect.get("orb"),
+            }
+            for aspect in DEFAULT_ACTIVE_ASPECTS
+            if _aspect_name(aspect)
+        ],
+    }
+
+
+@app.post("/chart")
+async def generate_chart(payload: ChartRequest):
+    try:
+        data = payload.data
+        data2 = payload.data2 or _load_preferences()
+
         subject = AstrologicalSubjectFactory.from_birth_data(
             name=data.name,
             year=data.year,
@@ -90,10 +289,23 @@ async def generate_chart(data: BirthData):
             city=data.city,
             nation=data.nation,
             online=False,
-            houses_system_identifier=data.houses_system,
+            zodiac_type=data2.zodiac_type,
+            houses_system_identifier=data2.houses_system,
         )
 
-        chart_data = ChartDataFactory.create_natal_chart_data(subject)
+        print(
+            f"[Backend] Generating chart for: {subject.name} ({data.year}-{data.month}-{data.day} {data.hour}:{data.minute})"
+        )
+
+        aspect_list = _get_active_aspects(data2)
+
+        print(f"[Backend] Active aspects: {aspect_list}")
+
+        chart_data = ChartDataFactory.create_natal_chart_data(
+            subject, active_aspects=aspect_list
+        )
+
+        print(f"[Backend] Chart data generated successfully for {subject.name}")
 
         # Planets
         standard_planets = [
@@ -161,7 +373,15 @@ async def generate_chart(data: BirthData):
             if svg_path.exists():
                 svg_path.unlink()
 
+            # Always render the full chart so other right-side panels are preserved.
             chart_drawer.save_svg(output_path=str(STATIC_CHART_DIR), filename=filename)
+
+            if not aspect_list and svg_path.exists():
+                svg_markup = svg_path.read_text(encoding="utf-8")
+                svg_path.write_text(
+                    _strip_aspect_matrix_from_svg(svg_markup),
+                    encoding="utf-8",
+                )
 
             if not svg_path.exists():
                 raise Exception("SVG file was not created")
@@ -173,7 +393,10 @@ async def generate_chart(data: BirthData):
             "name": subject.name,
             "date": f"{data.year}-{data.month:02d}-{data.day:02d} {data.hour:02d}:{data.minute:02d}",
             "location": {"lat": data.lat, "lng": data.lng, "tz": data.tz_str},
-            "houses_system": getattr(subject, "houses_system_name", data.houses_system),
+            "zodiac_type": data2.zodiac_type,
+            "houses_system": getattr(
+                subject, "houses_system_name", data2.houses_system
+            ),
             "planets": planets_data,
             "houses": houses_data,
             "ascendant": (
@@ -187,10 +410,14 @@ async def generate_chart(data: BirthData):
                 else None
             ),
             "aspects": getattr(chart_data, "aspects", []),
+            "preferences": data2.model_dump(),
             "svg_path": f"/charts_output/{filename}.svg",
         }
 
     except Exception as e:
+
+        print(f"[Backend] Error generating chart: {e}")
+
         raise HTTPException(status_code=400, detail=str(e))
 
 

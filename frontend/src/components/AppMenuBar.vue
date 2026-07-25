@@ -78,6 +78,7 @@ const pt = {
 // Injected from App.vue
 const doSaveChart = inject('saveChart', () => {})
 const doOpenChart = inject('openChart', () => {})
+const doOpenPreferences = inject('openPreferences', () => {})
 const recentFiles = inject('recentFiles', ref([]))
 const doOpenRecentFile = inject('openRecentFile', () => {})
 
@@ -112,10 +113,6 @@ const items = computed(() => [
   {
     label: 'Edit',
     items: [{ label: 'Preferences...', icon: 'pi pi-cog', command: () => openPreferences() }],
-  },
-  {
-    label: 'View',
-    items: [{ label: 'Show Aspects', icon: 'pi pi-chart-line', command: () => toggleAspects() }],
   },
   {
     label: 'Help',
@@ -180,7 +177,7 @@ const exitApp = () => {
 
 const undo = () => {}
 const redo = () => {}
-const openPreferences = () => {}
+const openPreferences = () => doOpenPreferences()
 
 const setTheme = (theme) => {
   const root = document.documentElement
@@ -207,7 +204,15 @@ const calculateChart = () => {}
 const toggleAspects = () => {}
 const managePersons = () => {}
 const manageLocations = () => {}
-const showDocs = () => {}
+const showDocs = () => {
+  const repoUrl = 'https://github.com/christopher-robert-nuss/astrology-app'
+
+  if (window.electronAPI?.openExternal) {
+    window.electronAPI.openExternal(repoUrl)
+  } else {
+    window.open(repoUrl, '_blank', 'noopener,noreferrer')
+  }
+}
 const showAbout = () => {
   console.log('Showing About dialog')
 
