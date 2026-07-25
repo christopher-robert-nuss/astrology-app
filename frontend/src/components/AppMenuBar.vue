@@ -175,35 +175,8 @@ const exitApp = () => {
   }
 }
 
-const undo = () => {}
-const redo = () => {}
 const openPreferences = () => doOpenPreferences()
 
-const setTheme = (theme) => {
-  const root = document.documentElement
-
-  if (theme === 'dark') {
-    root.classList.add('dark')
-    root.classList.remove('light', 'gtk')
-  } else if (theme === 'light') {
-    root.classList.add('light')
-    root.classList.remove('dark', 'gtk')
-  } else if (theme === 'gtk') {
-    root.classList.add('gtk')
-    root.classList.remove('dark', 'light')
-  }
-
-  // Optional: persist choice
-  localStorage.setItem('app-theme', theme)
-}
-
-const zoomIn = () => {}
-const zoomOut = () => {}
-const resetZoom = () => {}
-const calculateChart = () => {}
-const toggleAspects = () => {}
-const managePersons = () => {}
-const manageLocations = () => {}
 const showDocs = () => {
   const repoUrl = 'https://github.com/christopher-robert-nuss/astrology-app'
 
