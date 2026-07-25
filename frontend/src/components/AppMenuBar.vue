@@ -85,7 +85,6 @@ const items = ref([
       { separator: true },
       { label: 'Save', icon: 'pi pi-save', command: () => saveChart() },
       { label: 'Save As...', icon: 'pi pi-save', command: () => saveChartAs() },
-      { label: 'Export Chart', icon: 'pi pi-export', command: () => exportChart() },
       { separator: true },
       { label: 'Print...', icon: 'pi pi-print', command: () => handlePrint() },
       { separator: true },
@@ -94,16 +93,12 @@ const items = ref([
   },
   {
     label: 'Edit',
-    items: [
-      { label: 'Undo', icon: 'pi pi-undo', command: () => undo() },
-      { label: 'Redo', icon: 'pi pi-redo', command: () => redo() },
-      { separator: true },
-      { label: 'Preferences...', icon: 'pi pi-cog', command: () => openPreferences() },
-    ],
+    items: [{ label: 'Preferences...', icon: 'pi pi-cog', command: () => openPreferences() }],
   },
   {
     label: 'View',
     items: [
+      { label: 'Show Aspects', icon: 'pi pi-chart-line', command: () => toggleAspects() },
       {
         label: 'Theme',
         items: [
@@ -112,34 +107,6 @@ const items = ref([
           { label: 'GTK Style', command: () => setTheme('gtk') },
         ],
       },
-      { separator: true },
-      { label: 'Zoom In', icon: 'pi pi-plus', command: () => zoomIn() },
-      { label: 'Zoom Out', icon: 'pi pi-minus', command: () => zoomOut() },
-      { label: 'Reset Zoom', command: () => resetZoom() },
-    ],
-  },
-  {
-    label: 'Chart',
-    items: [
-      { label: 'Calculate Chart', icon: 'pi pi-calculator', command: () => calculateChart() },
-      { label: 'Show Aspects', icon: 'pi pi-chart-line', command: () => toggleAspects() },
-      {
-        label: 'House System',
-        items: [
-          { label: 'Placidus' },
-          { label: 'Koch' },
-          { label: 'Whole Sign' },
-          { label: 'Equal' },
-        ],
-      },
-      { label: 'Ayanamsa', items: [{ label: 'Lahiri' }, { label: 'Fagan-Bradley' }] },
-    ],
-  },
-  {
-    label: 'Data',
-    items: [
-      { label: 'Manage Persons', icon: 'pi pi-users', command: () => managePersons() },
-      { label: 'Manage Locations', icon: 'pi pi-map', command: () => manageLocations() },
     ],
   },
   {
