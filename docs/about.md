@@ -1,10 +1,8 @@
-# About Simple Astro App
+## About the developer
 
-## Christopher Robert Nuss
+Christopher Robert Nuss - Javascript developer based in Australia.
 
-Javascript developer based in Australia.
-
-## Opensource Libraries
+## Opensource libraries used
 
 # Python
 
@@ -17,6 +15,6 @@ Javascript developer based in Australia.
 - PrimeVue
 - Electron
 
-## LLM Helpers
+## LLMs
 
 - MS Copilot (various models)
