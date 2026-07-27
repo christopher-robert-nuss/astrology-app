@@ -4,17 +4,17 @@ Christopher Robert Nuss - Javascript developer based in Australia.
 
 ## Opensource libraries used
 
-# Python
+### Python
 
 - Kerykeiron
 - fastAPI
 
-# Javascript
+### Javascript
 
 - VueJS
 - PrimeVue
 - Electron
 
-## LLMs
+### LLMs
 
 - MS Copilot (various models)
