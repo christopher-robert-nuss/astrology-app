@@ -1,214 +1,226 @@
 <template>
-  <div class="flex flex-col h-screen">
-    <AppMenuBar class="m-0! p-0! rounded-none! border-none!" />
+  <div class="flex h-dvh flex-col overflow-hidden">
+    <AppMenuBar class="relative z-40 m-0! p-0! rounded-none! border-none!" />
 
-    <div class="flex-1 overflow-hidden">
+    <div class="flex-1 min-h-0 overflow-hidden">
       <Toast position="bottom-right" />
-      <div class="content min-h-screen bg-gray-50">
-        <div class="w-full">
-          <div class="flex flex-col md:flex-row gap-2 w-full">
-            <!-- Left Sidebar: Form + Saved Charts -->
-            <div
-              class="w-full bg-slate-200 md:w-72 lg:w-80 xl:w-96 md:min-h-screen md:sticky md:top-0 md:self-start shrink-0 flex flex-col"
+      <div class="content h-full min-h-0 bg-gray-50">
+        <div class="h-full min-h-0 w-full">
+          <div class="relative h-full min-h-0 w-full">
+            <Drawer
+              v-model:visible="showSidebar"
+              header="Enter Birth Data"
+              position="left"
+              class="w-full sm:w-md"
             >
-              <!-- Birth Data Form -->
-              <div
-                class="bg-white shadow-lg border border-gray-200 overflow-hidden flex-1 flex flex-col"
-              >
-                <div class="px-4 py-3 border-b border-b-gray-200 font-semibold bg-gray-50">
-                  Enter Birth Data
-                </div>
-
-                <form @submit.prevent="generateChart" class="p-4 flex-1 flex flex-col">
-                  <div class="space-y-5 flex-1">
-                    <div class="mb-3 text-gray-700 text-sm">
-                      <InputText
-                        v-model="formData.name"
-                        class="w-full"
+              <form @submit.prevent="generateChart" class="p-1 flex-1 flex flex-col">
+                <div class="space-y-5 flex-1">
+                  <div class="mb-3 text-gray-700 text-sm">
+                    <InputText
+                      v-model="formData.name"
+                      class="w-full"
+                      fluid
+                      placeholder="Name"
+                      size="small"
+                    />
+                  </div>
+                  <p class="text-sm font-semibold m-0 pb-1">Date of Birth</p>
+                  <div class="grid grid-cols-3 gap-3">
+                    <div class="text-gray-700 text-sm">
+                      <InputNumber
+                        v-model="formData.day"
+                        :min="1"
+                        :max="31"
                         fluid
-                        placeholder="Name"
+                        placeholder="Day"
                         size="small"
                       />
                     </div>
-                    <p class="text-sm font-semibold m-0 pb-1">Date of Birth</p>
-                    <div class="grid grid-cols-3 gap-3">
-                      <div class="text-gray-700 text-sm">
-                        <InputNumber
-                          v-model="formData.day"
-                          :min="1"
-                          :max="31"
-                          fluid
-                          placeholder="Day"
-                          size="small"
-                        />
-                      </div>
-                      <div class="text-gray-700 text-sm">
-                        <InputNumber
-                          v-model="formData.month"
-                          :min="1"
-                          :max="12"
-                          fluid
-                          placeholder="Month"
-                          size="small"
-                        />
-                      </div>
-                      <div class="text-gray-700 text-sm">
-                        <InputNumber
-                          v-model="formData.year"
-                          :format="false"
-                          :min="1500"
-                          fluid
-                          placeholder="Year"
-                          size="small"
-                        />
-                      </div>
+                    <div class="text-gray-700 text-sm">
+                      <InputNumber
+                        v-model="formData.month"
+                        :min="1"
+                        :max="12"
+                        fluid
+                        placeholder="Month"
+                        size="small"
+                      />
                     </div>
-                    <p class="text-sm font-semibold m-0 pb-1">Birth Information</p>
-                    <div class="grid grid-cols-2 gap-3">
-                      <div class="col-span-1 text-gray-700 text-sm">
-                        <InputNumber
-                          v-model="formData.hour"
-                          :min="0"
-                          :max="23"
-                          fluid
-                          placeholder="Hour"
-                          size="small"
-                        />
-                      </div>
-
-                      <div class="col-span-1 text-gray-700 text-sm">
-                        <InputNumber
-                          v-model="formData.minute"
-                          :min="0"
-                          :max="59"
-                          fluid
-                          placeholder="Minute"
-                          size="small"
-                        />
-                      </div>
-
-                      <div class="col-span-2 text-gray-700 text-sm">
-                        <InputText
-                          v-model="formData.tz_str"
-                          fluid
-                          placeholder="Timezone"
-                          size="small"
-                        />
-                      </div>
-                    </div>
-                    <p class="text-sm font-semibold m-0 pb-1">Location Information</p>
-                    <div class="grid grid-cols-2 gap-3">
-                      <div class="col-span-1 text-gray-700 text-sm">
-                        <InputNumber
-                          v-model="formData.lat"
-                          :format="false"
-                          :maxFractionDigits="6"
-                          :min="-90"
-                          :max="90"
-                          fluid
-                          placeholder="Latitude"
-                          size="small"
-                        />
-                      </div>
-
-                      <div class="col-span-1 text-gray-700 text-sm">
-                        <InputNumber
-                          v-model="formData.lng"
-                          :format="false"
-                          :maxFractionDigits="6"
-                          :min="-180"
-                          :max="180"
-                          fluid
-                          placeholder="Longitude"
-                          size="small"
-                        />
-                      </div>
-
-                      <div class="col-span-2 text-gray-700 text-sm">
-                        <InputText v-model="formData.city" fluid placeholder="City" size="small" />
-                      </div>
-                      <div class="col-span-2 text-gray-700 text-sm">
-                        <InputText
-                          v-model="formData.nation"
-                          fluid
-                          placeholder="Country"
-                          size="small"
-                        />
-                      </div>
-                    </div>
-                    <p class="text-sm font-semibold m-0 pb-1">House System</p>
-                    <div class="grid grid-cols-2 gap-3">
-                      <div class="col-span-2 text-gray-700 text-sm">
-                        <InputText
-                          v-model="formData.houses_system"
-                          fluid
-                          placeholder="House System"
-                          size="small"
-                        />
-                      </div>
-                    </div>
-
-                    <div class="flex gap-4 mt-6 pt-2">
-                      <Button
-                        type="submit"
-                        label="Generate Chart"
-                        :loading="loading"
-                        class="w-full"
-                        icon="pi pi-chart-line"
-                        :pt="{ label: { class: 'text-xs p-1' } }"
+                    <div class="text-gray-700 text-sm">
+                      <InputNumber
+                        v-model="formData.year"
+                        :format="false"
+                        :min="1500"
+                        fluid
+                        placeholder="Year"
+                        size="small"
                       />
                     </div>
                   </div>
-                </form>
-              </div>
-            </div>
+                  <p class="text-sm font-semibold m-0 pb-1">Birth Information</p>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="col-span-1 text-gray-700 text-sm">
+                      <InputNumber
+                        v-model="formData.hour"
+                        :min="0"
+                        :max="23"
+                        fluid
+                        placeholder="Hour"
+                        size="small"
+                      />
+                    </div>
+
+                    <div class="col-span-1 text-gray-700 text-sm">
+                      <InputNumber
+                        v-model="formData.minute"
+                        :min="0"
+                        :max="59"
+                        fluid
+                        placeholder="Minute"
+                        size="small"
+                      />
+                    </div>
+
+                    <div class="col-span-2 text-gray-700 text-sm">
+                      <InputText
+                        v-model="formData.tz_str"
+                        fluid
+                        placeholder="Timezone"
+                        size="small"
+                      />
+                    </div>
+                  </div>
+                  <p class="text-sm font-semibold m-0 pb-1">Location Information</p>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="col-span-1 text-gray-700 text-sm">
+                      <InputNumber
+                        v-model="formData.lat"
+                        :format="false"
+                        :maxFractionDigits="6"
+                        :min="-90"
+                        :max="90"
+                        fluid
+                        placeholder="Latitude"
+                        size="small"
+                      />
+                    </div>
+
+                    <div class="col-span-1 text-gray-700 text-sm">
+                      <InputNumber
+                        v-model="formData.lng"
+                        :format="false"
+                        :maxFractionDigits="6"
+                        :min="-180"
+                        :max="180"
+                        fluid
+                        placeholder="Longitude"
+                        size="small"
+                      />
+                    </div>
+
+                    <div class="col-span-2 text-gray-700 text-sm">
+                      <InputText v-model="formData.city" fluid placeholder="City" size="small" />
+                    </div>
+                    <div class="col-span-2 text-gray-700 text-sm">
+                      <InputText
+                        v-model="formData.nation"
+                        fluid
+                        placeholder="Country"
+                        size="small"
+                      />
+                    </div>
+                  </div>
+                  <p class="text-sm font-semibold m-0 pb-1">House System</p>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="col-span-2 text-gray-700 text-sm">
+                      <InputText
+                        v-model="formData.houses_system"
+                        fluid
+                        placeholder="House System"
+                        size="small"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="flex gap-3 mt-6 pt-2">
+                    <Button
+                      type="submit"
+                      label="Generate Chart"
+                      :loading="loading"
+                      class="w-full"
+                      icon="pi pi-chart-line"
+                      :pt="{ label: { class: 'text-xs p-1' } }"
+                    />
+                    <Button
+                      type="button"
+                      label="Reset"
+                      severity="secondary"
+                      outlined
+                      class="w-full"
+                      icon="pi pi-refresh"
+                      @click="resetForm"
+                      :disabled="loading"
+                    />
+                  </div>
+                </div>
+              </form>
+            </Drawer>
 
             <!-- Right Side: Chart Display -->
-            <div class="flex-1 min-w-0 h-screen max-h-screen overflow-hidden">
-              <div class="bg-white h-full max-h-screen overflow-hidden">
-                <div
-                  v-if="svgUrl"
-                  class="h-full max-h-screen flex flex-col p-6 lg:p-8 overflow-hidden"
-                >
+            <div class="relative z-0 min-w-0 h-full min-h-0 w-full overflow-hidden bg-white">
+              <Button
+                label="Birth Data"
+                icon="pi pi-bars"
+                class="absolute left-6 top-6 lg:left-8 lg:top-8"
+                severity="secondary"
+                @click="showSidebar = true"
+                :pt="{ root: { class: 'rounded-none!' } }"
+                :ptOptions="{ mergeProps: true }"
+              />
+              <div class="bg-white h-full min-h-0 overflow-auto">
+                <div v-if="svgUrl" class="h-full min-h-0 flex flex-col p-6 lg:p-8">
                   <div class="flex-1 min-h-0 flex justify-center items-center">
                     <div
-                      class="relative w-full max-w-full max-h-full flex justify-center items-center"
+                      class="relative h-full w-full min-h-0 min-w-0 overflow-hidden flex justify-center items-center"
                     >
                       <img
                         :src="svgUrl"
                         :key="svgUrl"
                         alt="Birth Chart"
-                        class="print-chart-image"
-                      />
-                      <Button
-                        icon="pi pi-search-plus"
-                        severity="secondary"
-                        rounded
-                        class="absolute right-2 top-2 z-20 bg-white/90 border border-gray-300 shadow-sm"
-                        @click="toggleMagnifier"
-                        aria-label="Toggle zoom"
+                        class="print-chart-image block h-auto w-auto max-h-full max-w-full object-contain"
                       />
                       <div
                         v-if="showMagnifier"
-                        class="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded border border-gray-300 bg-white shadow-lg"
+                        class="absolute inset-0 z-10 overflow-hidden rounded border border-gray-300 bg-white shadow-lg"
                       >
-                        <div
-                          class="h-full w-full bg-no-repeat bg-cover"
-                          :style="{
-                            backgroundImage: `url(${svgUrl})`,
-                            backgroundPosition: `${magnifierX}% ${magnifierY}%`,
-                            backgroundSize: `${magnifierScale * 100}% ${magnifierScale * 100}%`,
-                          }"
-                        />
+                        <div class="h-full w-full overflow-auto">
+                          <img
+                            :src="svgUrl"
+                            alt="Magnified Birth Chart"
+                            class="block max-w-none"
+                            :style="{
+                              width: `${magnifierScale * 100}%`,
+                              height: 'auto',
+                            }"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div class="pt-4 flex justify-center shrink-0">
+                  <div class="pt-4 flex justify-center gap-3 shrink-0">
                     <Button
                       label="View Full Screen"
                       icon="pi pi-external-link"
                       @click="showFullScreen = true"
                       severity="secondary"
+                      class="h-10!"
+                    />
+                    <Button
+                      :label="showMagnifier ? 'Hide Magnifier' : 'Show Magnifier'"
+                      icon="pi pi-search-plus"
+                      @click="toggleMagnifier"
+                      severity="secondary"
+                      class="h-10!"
                     />
                   </div>
 
@@ -240,11 +252,9 @@
 
                 <div
                   v-else
-                  class="h-full max-h-screen flex items-center justify-center text-center text-gray-400 p-6 lg:p-8"
+                  class="h-full min-h-0 flex items-center justify-center text-center text-gray-400 p-6 lg:p-8"
                 >
-                  <i class="pi pi-chart-line text-6xl mb-4"></i>
                   <p class="text-xl">Your birth chart will appear here</p>
-                  <p class="text-sm mt-2">Fill the form and click Generate Chart</p>
                 </div>
               </div>
             </div>
@@ -253,7 +263,7 @@
 
         <div
           v-if="showFullScreen && svgUrl"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-white p-4"
         >
           <div class="absolute right-4 top-4 z-10">
             <Button
@@ -374,6 +384,7 @@ import { ref, onMounted, provide } from 'vue'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
+import Drawer from 'primevue/drawer'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 
@@ -394,30 +405,31 @@ const preferencesDraft = ref(null)
 const loadingPreferences = ref(false)
 const savingPreferences = ref(false)
 
-const formData = ref({
-  name: 'Christopher Robert Nuss',
-  year: 1972,
-  month: 1,
-  day: 24,
-  hour: 17,
-  minute: 30,
-  lat: -27.485994,
-  lng: 153.027624,
-  tz_str: 'Australia/Brisbane',
-  city: 'Brisbane',
-  nation: 'Australia',
-  zodiac_type: 'Tropical',
-  houses_system: 'P',
-})
+const initialFormData = {
+  name: '',
+  year: null,
+  month: null,
+  day: null,
+  hour: null,
+  minute: null,
+  lat: null,
+  lng: null,
+  tz_str: '',
+  city: '',
+  nation: '',
+  zodiac_type: '',
+  houses_system: '',
+}
+
+const formData = ref({ ...initialFormData })
 
 const chartData = ref()
 const loading = ref(false)
 const svgUrl = ref()
+const showSidebar = ref(false)
 const showFullScreen = ref(false)
 const showMagnifier = ref(false)
-const magnifierX = ref(50)
-const magnifierY = ref(50)
-const magnifierScale = 1.8
+const magnifierScale = 1.4
 const recentFiles = ref([])
 const toast = useToast()
 
@@ -697,6 +709,14 @@ const openRecentChartFile = async (filePath) => {
 
 const toggleMagnifier = () => {
   showMagnifier.value = !showMagnifier.value
+}
+
+const resetForm = () => {
+  formData.value = { ...initialFormData }
+  chartData.value = null
+  svgUrl.value = null
+  showFullScreen.value = false
+  showMagnifier.value = false
 }
 
 // Provide to child components (AppMenuBar)
