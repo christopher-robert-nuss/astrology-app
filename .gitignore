@@ -5,7 +5,7 @@ astrology-app.code-workspace
 /backend/build
 /backend/astrology-backend.spec
 /backend/start-backend.sh
-/frontend/dist-electron
+/frontend/dist*
 
 
 

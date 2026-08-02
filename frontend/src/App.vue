@@ -431,7 +431,10 @@ const showFullScreen = ref(false)
 const showMagnifier = ref(false)
 const magnifierScale = 1.4
 const recentFiles = ref([])
+const backendBaseUrl = ref('http://127.0.0.1:8080')
 const toast = useToast()
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const toPlainPayload = (value) => {
   if (value === null || value === undefined) {
@@ -452,6 +455,28 @@ const apiCall = async (method, endpoint, body = null) => {
     endpoint,
     body: toPlainPayload(body),
   })
+}
+
+const apiCallWithRetry = async (
+  method,
+  endpoint,
+  body = null,
+  { attempts = 8, delayMs = 250 } = {},
+) => {
+  let lastError = null
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await apiCall(method, endpoint, body)
+    } catch (error) {
+      lastError = error
+      if (attempt < attempts) {
+        await delay(delayMs)
+      }
+    }
+  }
+
+  throw lastError
 }
 
 const normalizePreferences = (source = {}) => {
@@ -481,7 +506,10 @@ const normalizePreferences = (source = {}) => {
 
 const loadPreferenceOptions = async () => {
   try {
-    const options = await apiCall('GET', '/preferences/options')
+    const options = await apiCallWithRetry('GET', '/preferences/options', null, {
+      attempts: 12,
+      delayMs: 250,
+    })
     preferencesOptions.value = {
       zodiac_types: options.zodiac_types || ['Tropical', 'Sidereal'],
       house_systems: options.house_systems || [],
@@ -501,7 +529,10 @@ const loadPreferenceOptions = async () => {
 const loadPreferences = async () => {
   loadingPreferences.value = true
   try {
-    const loaded = await apiCall('GET', '/preferences')
+    const loaded = await apiCallWithRetry('GET', '/preferences', null, {
+      attempts: 12,
+      delayMs: 250,
+    })
     preferences.value = normalizePreferences(loaded)
   } catch (e) {
     console.error('Failed to load preferences:', e)
@@ -629,7 +660,7 @@ const generateChart = async ({ notifySuccess = true } = {}) => {
 
     let svgPath = res.svg_path
     if (svgPath && svgPath.startsWith('/charts_output')) {
-      svgUrl.value = `http://127.0.0.1:8080${svgPath}?t=${Date.now()}` // Cache-bust to always show latest SVG
+      svgUrl.value = `${backendBaseUrl.value}${svgPath}?t=${Date.now()}` // Cache-bust to always show latest SVG
     } else {
       const joiner = svgPath && svgPath.includes('?') ? '&' : '?'
       svgUrl.value = svgPath ? `${svgPath}${joiner}t=${Date.now()}` : svgPath
@@ -736,7 +767,10 @@ onMounted(async () => {
       document.documentElement.classList.remove('dark')
     }
   })
-  await window.electronAPI.startBackend() // Ensures backend is running
+  const backend = await window.electronAPI.startBackend() // Ensures backend is running
+  if (backend?.url) {
+    backendBaseUrl.value = backend.url
+  }
   await loadPreferenceOptions()
   await loadPreferences()
   await loadRecentFiles()

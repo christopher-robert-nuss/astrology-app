@@ -1,0 +1,18 @@
+{
+  "sidebar": [
+    {
+      "label": "Introduction",
+      "page": "introduction.md"
+    },
+    {
+      "label": "Birth Charts",
+      "autogenerate": {
+        "directory": "Birth_Charts"
+      }
+    },
+    {
+      "label": "About",
+      "page": "about.md"
+    }
+  ]
+}

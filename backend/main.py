@@ -96,10 +96,16 @@ def _get_preferences_path() -> Path:
     return base_dir / "simple-astro-chart" / "preferences.json"
 
 
+def _get_data_dir() -> Path:
+    configured_path = os.getenv("ASTROLOGY_APP_DATA_DIR")
+    if configured_path:
+        return Path(configured_path).expanduser().resolve()
+
+    return (Path(__file__).resolve().parent / "../frontend/public").resolve()
+
+
 # ====================== DIRECTORY SETUP ======================
-print("[Backend] Forcing DEVELOPMENT mode")
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "../frontend/public"
+DATA_DIR = _get_data_dir()
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 

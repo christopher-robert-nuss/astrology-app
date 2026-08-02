@@ -49,7 +49,7 @@ export default defineConfig(({ command }) => {
     },
     // Build output for Electron
     build: {
-      outDir: 'dist',
+      outDir: 'dist-renderer',
     },
   }
 })

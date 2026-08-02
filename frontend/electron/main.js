@@ -2,13 +2,81 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell } from 'e
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { spawn } from 'child_process'
+import net from 'net'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-process.env.NODE_ENV = process.env.NODE_ENV || 'development'
 
 let mainWindow
 let backendProcess = null
+let backendPort = 8080
+
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer()
+
+    server.once('error', () => resolve(false))
+    server.once('listening', () => {
+      server.close(() => resolve(true))
+    })
+
+    server.listen(port, '127.0.0.1')
+  })
+}
+
+async function waitForBackendReady(port, { attempts = 50, delayMs = 200 } = {}) {
+  const healthUrl = `http://127.0.0.1:${port}/preferences`
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(healthUrl)
+      if (response.ok) return
+    } catch {
+      // Backend not ready yet; keep polling.
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
+  }
+
+  throw new Error(`Backend did not become ready on port ${port}`)
+}
+
+async function findAvailablePort(startPort = 8080, maxAttempts = 25) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const port = startPort + attempt
+    if (await isPortAvailable(port)) return port
+  }
+
+  throw new Error(`No available backend port found from ${startPort}`)
+}
+
+function getBackendLaunchConfig() {
+  const isDev = !app.isPackaged
+
+  if (isDev) {
+    return {
+      command: process.platform === 'win32' ? 'python' : 'python3',
+      args: [path.join(__dirname, '../../backend/run_backend.py')],
+      cwd: path.join(__dirname, '../../backend'),
+    }
+  }
+
+  const backendDir = path.join(process.resourcesPath, 'backend')
+  const backendBinary = path.join(
+    backendDir,
+    process.platform === 'win32' ? 'astrology-backend.exe' : 'astrology-backend',
+  )
+
+  if (existsSync(backendBinary)) {
+    return {
+      command: backendBinary,
+      args: [],
+      cwd: backendDir,
+    }
+  }
+
+  throw new Error(`Packaged backend binary not found: ${backendBinary}`)
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -25,15 +93,13 @@ function createWindow() {
   })
 
   // 🔥 Load Vite dev server during development
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+  const isDev = !app.isPackaged
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../dist-renderer/index.html'))
   }
-
-  mainWindow.webContents.openDevTools() // Optional: Open DevTools for debugging
 
   // Remove default Electron menu (already present, kept for clarity)
   Menu.setApplicationMenu(null)
@@ -44,32 +110,57 @@ function createWindow() {
   })
 }
 
-// Start Python FastAPI backend
-function startBackend() {
-  if (backendProcess) return backendProcess
+// Start FastAPI backend
+async function startBackend() {
+  if (backendProcess) return
 
-  const backendPath = path.join(__dirname, '../../backend/run_backend.py')
-  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3'
+  const launch = getBackendLaunchConfig()
+  backendPort = await findAvailablePort(8080)
 
-  backendProcess = spawn(pythonCmd, [backendPath], {
-    cwd: path.join(__dirname, '../../backend'),
-    env: { ...process.env, PORT: '8080' },
+  await new Promise((resolve, reject) => {
+    backendProcess = spawn(launch.command, launch.args, {
+      cwd: launch.cwd,
+      env: {
+        ...process.env,
+        PORT: String(backendPort),
+        ASTROLOGY_APP_DATA_DIR: app.getPath('userData'),
+        ASTROLOGY_APP_PREFERENCES_PATH: path.join(app.getPath('userData'), 'preferences.json'),
+      },
+    })
+
+    let settled = false
+
+    backendProcess.once('error', (error) => {
+      backendProcess = null
+      if (!settled) reject(error)
+    })
+
+    backendProcess.once('close', (code) => {
+      if (!settled) {
+        reject(new Error(`Backend exited before startup completed (code ${code})`))
+      }
+      console.log(`[Backend] Exited with code ${code}`)
+      backendProcess = null
+    })
+
+    backendProcess.stdout.on('data', (data) => console.log(`[Backend] ${data}`))
+    backendProcess.stderr.on('data', (data) => console.error(`[Backend] ${data}`))
+
+    waitForBackendReady(backendPort)
+      .then(() => {
+        settled = true
+        resolve()
+      })
+      .catch((error) => {
+        if (!settled) reject(error)
+      })
   })
-
-  backendProcess.stdout.on('data', (data) => console.log(`[Backend] ${data}`))
-  backendProcess.stderr.on('data', (data) => console.error(`[Backend] ${data}`))
-  backendProcess.on('close', (code) => {
-    console.log(`[Backend] Exited with code ${code}`)
-    backendProcess = null
-  })
-
-  return new Promise((resolve) => setTimeout(resolve, 1500))
 }
 
 // IPC Handlers
 ipcMain.handle('start-backend', async () => {
   await startBackend()
-  return { success: true, url: 'http://127.0.0.1:8080' }
+  return { success: true, url: `http://127.0.0.1:${backendPort}` }
 })
 
 ipcMain.handle('stop-backend', () => {
@@ -81,7 +172,7 @@ ipcMain.handle('stop-backend', () => {
 })
 
 ipcMain.handle('api-request', async (event, { method, endpoint, body }) => {
-  const baseUrl = 'http://127.0.0.1:8080'
+  const baseUrl = `http://127.0.0.1:${backendPort}`
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {
       method,
@@ -283,8 +374,17 @@ ipcMain.on('show-about', () => {
 })
 
 app.whenReady().then(async () => {
-  await startBackend()
+  // Use a stable working directory so packaged child processes do not inherit stale/deleted cwd paths.
+  try {
+    process.chdir(app.getPath('home'))
+  } catch (error) {
+    console.warn('[App] Failed to update cwd:', error)
+  }
+
   createWindow()
+  startBackend().catch((error) => {
+    console.error('[Backend] Failed to start:', error)
+  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

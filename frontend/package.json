@@ -1,8 +1,42 @@
 {
-  "name": "frontend",
+  "name": "simple-astrology-app",
   "version": "0.0.1",
   "main": "dist-electron/main.js",
   "private": true,
+  "author": {
+    "name": "Christopher Robert Nuss",
+    "email": "chris@crn.net.au"
+  },
+  "homepage": "https://github.com/christopher-robert-nuss/astrology-app",
+  "description": "A simple astrology app built with Vue 3, Vite, and Electron.",
+  "desktopName": "Simple Astrology App",
+  "build": {
+    "appId": "com.crn.astrology-app",
+    "productName": "Simple Astrology App",
+    "extraResources": [
+      {
+        "from": "../backend/dist/astrology-backend",
+        "to": "backend/astrology-backend"
+      }
+    ],
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "category": "Other",
+      "synopsis": "A simple astrology app built with Vue 3, Vite, and Electron.",
+      "description": "A simple astrology app built with Vue 3, Vite, and Electron.",
+      "maintainer": "Christopher Robert Nuss <chris@crn.net.au>",
+      "vendor": "Christopher Robert Nuss",
+      "mimeTypes": [
+        "application/x-simple-astrology-app"
+      ],
+      "executableArgs": [
+        "--enable-features=WebContentsFocusOnResize"
+      ],
+      "syncDesktopName": true
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
