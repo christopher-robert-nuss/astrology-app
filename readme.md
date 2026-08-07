@@ -1,6 +1,6 @@
 # Simple Astrology App
 
-A full-stack astrology application for generating and viewing natal chart visualizations. The project combines a FastAPI backend for astrology calculations with a Vue 3 + Vite frontend, and also supports a desktop experience via Electron.
+A simple astrology application for generating and viewing natal chart visualizations. The project combines a FastAPI backend for astrology calculations with a Vue 3 + Vite frontend, and also supports a desktop experience via Electron.
 
 ## Overview
 
@@ -10,7 +10,7 @@ This app lets users enter birth details and generate a chart with:
 - zodiac and house system selection
 - aspect calculations
 - generated SVG chart output
-- a polished UI for exploring the results
+- a simple UI for exploring the results
 
 ## Features
 
@@ -19,7 +19,7 @@ This app lets users enter birth details and generate a chart with:
 - Dynamic chart generation powered by Kerykeion
 - SVG chart rendering and static chart output
 - Modern frontend experience with PrimeVue and Tailwind CSS
-- Desktop packaging support with Electron
+- Debian based desktop app packaging support with Electron
 
 ## Tech Stack
 
@@ -102,11 +102,8 @@ npm run electron:dev
 - Generated charts are written to the backend chart output directory and served as SVG files.
 - The frontend communicates with the backend during chart generation and preference updates.
 
-## Contributing
-
-Contributions are welcome. If you would like to improve the app, please open an issue or submit a pull request with your changes.
-
 ## Acknowledgements
 
 - Built with Kerykeion for astrology calculations
 - UI powered by Vue 3, PrimeVue, and Tailwind CSS
+- Copilot & Grok coding assistance
