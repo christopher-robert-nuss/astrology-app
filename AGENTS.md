@@ -73,11 +73,10 @@ Before claiming success:
 ## Pull Requests
 
 - Use the canonical repository as the source of truth and ignore fork remotes unless explicitly instructed otherwise.
-- Create feature branches from the canonical development branch, for example `upstream/develop`, after fetching it first:
-  - `git fetch upstream develop`
-- Open pull requests against the canonical repository and the development branch.
+- Create feature branches from the canonical default branch, currently `main`, unless a dedicated `develop` branch is introduced for a longer-lived release workflow.
+- Open pull requests against the canonical repository and the default branch.
 - Before opening a PR, sanity-check that the diff is scoped to your change:
-  - `git diff --stat upstream/develop..<branch>`
+  - `git diff --stat main..<branch>`
 - Keep pull request descriptions simple and focused.
 - Good PR formats:
   1. `## Problem` and `## Solution`
