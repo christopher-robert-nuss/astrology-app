@@ -1,28 +1,41 @@
+"""
+Astrology Backend – FastAPI + Kerykeion
+
+Computes natal charts offline using Swiss Ephemeris data that is
+downloaded on demand into the user's data directory.
+"""
+
 import os
-import uvicorn
-import json
 import re
-
-from pathlib import Path
-from typing import Any, Optional
 import sys
+import json
+import threading
+import urllib.request
+from pathlib import Path
+from typing import Any, List, Optional
 
+import swisseph as swe
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from kerykeion import AstrologicalSubjectFactory
+from kerykeion import AstrologicalSubjectFactory, ChartDataFactory
 from kerykeion.charts.chart_drawer import ChartDrawer
-from kerykeion import ChartDataFactory
 from kerykeion.settings.config_constants import DEFAULT_ACTIVE_ASPECTS
 
+# ---------------------------------------------------------------------------
+# Application & constants
+# ---------------------------------------------------------------------------
+
 app = FastAPI(title="Astrology API")
+_ephe_lock = threading.Lock()
 
 ZODIAC_TYPES = ("Tropical", "Sidereal")
+
 HOUSE_SYSTEM_OPTIONS = {
-    "A": "Equal",
+    "A": "equal",
     "B": "Alcabitius",
     "C": "Campanus",
     "D": "Porphyry",
@@ -49,6 +62,7 @@ HOUSE_SYSTEM_OPTIONS = {
 
 
 def _aspect_name(aspect: dict[str, Any]) -> str:
+    """Extract the aspect name from a DEFAULT_ACTIVE_ASPECTS entry."""
     return str(aspect.get("name", "")).strip()
 
 
@@ -58,33 +72,20 @@ SUPPORTED_ASPECTS = tuple(
 DEFAULT_ASPECTS_ENABLED = {name: False for name in SUPPORTED_ASPECTS}
 
 
-def _normalize_aspects_enabled(value: Any) -> dict[str, bool]:
-    if isinstance(value, bool):
-        return {name: value for name in SUPPORTED_ASPECTS}
-
-    if value is None:
-        return dict(DEFAULT_ASPECTS_ENABLED)
-
-    if not isinstance(value, dict):
-        raise ValueError("aspects_enabled must be a boolean or an object map")
-
-    unknown = [key for key in value if key not in SUPPORTED_ASPECTS]
-    if unknown:
-        raise ValueError(f"Unsupported aspects: {', '.join(sorted(unknown))}")
-
-    normalized = dict(DEFAULT_ASPECTS_ENABLED)
-    for key, enabled in value.items():
-        if not isinstance(enabled, bool):
-            raise ValueError(f"Aspect '{key}' must be true or false")
-        normalized[key] = enabled
-
-    return normalized
+# ---------------------------------------------------------------------------
+# Path helpers
+# ---------------------------------------------------------------------------
 
 
-def _get_preferences_path() -> Path:
-    configured_path = os.getenv("ASTROLOGY_APP_PREFERENCES_PATH")
-    if configured_path:
-        return Path(configured_path).expanduser().resolve()
+def _get_app_data_root() -> Path:
+    """
+    Return the platform-specific root directory for app user data.
+
+    Override with the ASTROLOGY_APP_DATA_ROOT environment variable.
+    """
+    configured = os.getenv("ASTROLOGY_APP_DATA_ROOT")
+    if configured:
+        return Path(configured).expanduser().resolve()
 
     if sys.platform == "win32":
         base_dir = Path(os.getenv("APPDATA", Path.home()))
@@ -93,20 +94,149 @@ def _get_preferences_path() -> Path:
     else:
         base_dir = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
 
-    return base_dir / "simple-astro-chart" / "preferences.json"
+    return base_dir / "simple-astrology-app"
+
+
+def _get_preferences_path() -> Path:
+    """
+    Return the path to the preferences JSON file.
+
+    Override with the ASTROLOGY_APP_PREFERENCES_PATH environment variable.
+    """
+    configured_path = os.getenv("ASTROLOGY_APP_PREFERENCES_PATH")
+    if configured_path:
+        return Path(configured_path).expanduser().resolve()
+    return _get_app_data_root() / "preferences.json"
+
+
+def _get_ephemeris_dir() -> Path:
+    """
+    Return the persistent directory for Swiss Ephemeris .se1 files.
+
+    Override with the ASTROLOGY_APP_EPHE_DIR environment variable.
+    """
+    configured = os.getenv("ASTROLOGY_APP_EPHE_DIR")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return _get_app_data_root() / "ephe"
 
 
 def _get_data_dir() -> Path:
+    """
+    Return the directory used for chart SVG output.
+
+    Override with the ASTROLOGY_APP_DATA_DIR environment variable.
+    Defaults to ../frontend/public relative to this file.
+    """
     configured_path = os.getenv("ASTROLOGY_APP_DATA_DIR")
     if configured_path:
         return Path(configured_path).expanduser().resolve()
-
     return (Path(__file__).resolve().parent / "../frontend/public").resolve()
 
 
-# ====================== DIRECTORY SETUP ======================
-DATA_DIR = _get_data_dir()
+# ---------------------------------------------------------------------------
+# Swiss Ephemeris data management
+# ---------------------------------------------------------------------------
+# The full ephemeris set is no longer bundled with the app.
+# Required .se1 files are downloaded on first use for a given 600-year block
+# and stored permanently under the user data directory:
+#   <app-data-root>/ephe/
+# Kerykeion is pointed at this directory via swe.set_ephe_path().
+# ---------------------------------------------------------------------------
 
+
+def _year_to_ephe_prefix(year: int) -> str:
+    """
+    Map a year to the Swiss Ephemeris 600-year block prefix.
+
+    Supported practical range: roughly 5400 BC – 5399 AD.
+    Examples:
+        1990 → "18"
+        1750 → "12"
+        -300 → "m06"
+    """
+    if year < -5400 or year > 5399:
+        raise ValueError(
+            f"Year {year} is outside the supported Swiss Ephemeris range "
+            "(approx. 5400 BC – 5399 AD)"
+        )
+
+    if year >= 0:
+        block_start = (year // 600) * 600
+        return f"{block_start // 100:02d}"
+
+    abs_year = abs(year)
+    block_start = ((abs_year - 1) // 600) * 600 + 600
+    return f"m{block_start // 100:02d}"
+
+
+def _required_ephe_files(year: int, include_asteroids: bool = False) -> List[str]:
+    """Return the list of .se1 filenames needed for a birth year."""
+    prefix = _year_to_ephe_prefix(year)
+    files = [
+        f"sepl_{prefix}.se1",
+        f"semo_{prefix}.se1",
+    ]
+    if include_asteroids:
+        files.append(f"seas_{prefix}.se1")
+    return files
+
+
+def _download_ephe_file(filename: str, dest_dir: Path) -> None:
+    """
+    Download a single ephemeris file if it does not already exist.
+
+    Uses the public GitHub mirror of the Swiss Ephemeris data files.
+    """
+    dest = dest_dir / filename
+    if dest.exists() and dest.stat().st_size > 10_000:
+        return
+
+    url = f"https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/{filename}"
+    print(f"[Ephemeris] Downloading {filename} …")
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_suffix(".tmp")
+
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            data = response.read()
+        if len(data) < 10_000:
+            raise RuntimeError(
+                f"Downloaded {filename} is too small ({len(data)} bytes)"
+            )
+        tmp.write_bytes(data)
+        tmp.replace(dest)
+        print(f"[Ephemeris] Saved {filename} ({len(data):,} bytes)")
+    except Exception as e:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"Failed to download {filename}: {e}") from e
+
+
+def ensure_ephemeris_for_year(year: int, include_asteroids: bool = False) -> Path:
+    """
+    Ensure the required Swiss Ephemeris files for `year` exist locally,
+    then point pyswisseph at that directory.
+
+    Returns the ephemeris directory that was used.
+    """
+    with _ephe_lock:
+        ephe_dir = _get_ephemeris_dir()
+        required = _required_ephe_files(year, include_asteroids=include_asteroids)
+
+        for fname in required:
+            _download_ephe_file(fname, ephe_dir)
+
+        swe.set_ephe_path(str(ephe_dir))
+        print(f"[Ephemeris] Using path: {ephe_dir}")
+        return ephe_dir
+
+
+# ---------------------------------------------------------------------------
+# Directory setup & static file serving
+# ---------------------------------------------------------------------------
+
+DATA_DIR = _get_data_dir()
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 STATIC_CHART_DIR = DATA_DIR / "charts_output"
@@ -114,18 +244,15 @@ STATIC_CHART_DIR.mkdir(parents=True, exist_ok=True)
 
 print(f"[Backend] Using data dir: {DATA_DIR}")
 print(f"[Backend] Charts dir: {STATIC_CHART_DIR}")
+print(f"[Backend] Preferences: {_get_preferences_path()}")
+print(f"[Backend] Ephemeris dir: {_get_ephemeris_dir()}")
 
-# Serve SVG charts
 app.mount(
-    "/charts_output", StaticFiles(directory=STATIC_CHART_DIR), name="charts_output"
+    "/charts_output",
+    StaticFiles(directory=STATIC_CHART_DIR),
+    name="charts_output",
 )
 
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8080))
-    uvicorn.run(app, host="127.0.0.1", port=port)
-
-
-# CORS for Vue dev server
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -135,7 +262,14 @@ app.add_middleware(
 )
 
 
+# ---------------------------------------------------------------------------
+# Pydantic models
+# ---------------------------------------------------------------------------
+
+
 class BirthData(BaseModel):
+    """Birth data supplied by the frontend form."""
+
     name: str
     year: Optional[int] = None
     month: Optional[int] = None
@@ -159,6 +293,8 @@ class BirthData(BaseModel):
 
 
 class Preferences(BaseModel):
+    """User preferences for zodiac type, house system and aspects."""
+
     zodiac_type: str = "Tropical"
     houses_system: str = "P"
     aspects_enabled: dict[str, bool] = Field(
@@ -188,11 +324,43 @@ class Preferences(BaseModel):
 
 
 class ChartRequest(BaseModel):
+    """Request body for the /chart endpoint."""
+
     data: BirthData
     data2: Optional[Preferences] = None
 
 
+# ---------------------------------------------------------------------------
+# Preference helpers
+# ---------------------------------------------------------------------------
+
+
+def _normalize_aspects_enabled(value: Any) -> dict[str, bool]:
+    """Normalise the aspects_enabled field to a full map of supported aspects."""
+    if isinstance(value, bool):
+        return {name: value for name in SUPPORTED_ASPECTS}
+
+    if value is None:
+        return dict(DEFAULT_ASPECTS_ENABLED)
+
+    if not isinstance(value, dict):
+        raise ValueError("aspects_enabled must be a boolean or an object map")
+
+    unknown = [key for key in value if key not in SUPPORTED_ASPECTS]
+    if unknown:
+        raise ValueError(f"Unsupported aspects: {', '.join(sorted(unknown))}")
+
+    normalized = dict(DEFAULT_ASPECTS_ENABLED)
+    for key, enabled in value.items():
+        if not isinstance(enabled, bool):
+            raise ValueError(f"Aspect '{key}' must be true or false")
+        normalized[key] = enabled
+
+    return normalized
+
+
 def _save_preferences(preferences: Preferences) -> None:
+    """Write preferences to disk atomically."""
     path = _get_preferences_path()
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -203,6 +371,11 @@ def _save_preferences(preferences: Preferences) -> None:
 
 
 def _load_preferences() -> Preferences:
+    """
+    Load preferences from disk.
+
+    Creates and returns defaults if the file is missing or invalid.
+    """
     path = _get_preferences_path()
 
     if not path.exists():
@@ -221,6 +394,7 @@ def _load_preferences() -> Preferences:
 
 
 def _get_active_aspects(preferences: Preferences) -> list[dict[str, Any]]:
+    """Return the subset of DEFAULT_ACTIVE_ASPECTS that the user has enabled."""
     active_names = {
         name for name, is_enabled in preferences.aspects_enabled.items() if is_enabled
     }
@@ -231,8 +405,16 @@ def _get_active_aspects(preferences: Preferences) -> list[dict[str, Any]]:
     ]
 
 
+# ---------------------------------------------------------------------------
+# Chart helpers
+# ---------------------------------------------------------------------------
+
+
 def _strip_aspect_matrix_from_svg(svg_markup: str) -> str:
-    # Keep the full chart layout and metadata tables, but remove only aspect sections.
+    """
+    Remove the aspect grid and aspect list groups from a rendered SVG
+    while keeping the rest of the chart layout intact.
+    """
     patterns = [
         r"<g\s+kr:node='Aspect_Grid'.*?</g>",
         r"<g\s+kr:node='Aspect_List'.*?</g>",
@@ -241,23 +423,30 @@ def _strip_aspect_matrix_from_svg(svg_markup: str) -> str:
     cleaned = svg_markup
     for pattern in patterns:
         cleaned = re.sub(pattern, "", cleaned, flags=re.DOTALL)
-
     return cleaned
+
+
+# ---------------------------------------------------------------------------
+# API routes – Preferences
+# ---------------------------------------------------------------------------
 
 
 @app.get("/preferences")
 async def get_preferences():
+    """Return the current user preferences."""
     return _load_preferences().model_dump()
 
 
 @app.put("/preferences")
 async def update_preferences(preferences: Preferences):
+    """Update and persist user preferences."""
     _save_preferences(preferences)
     return preferences.model_dump()
 
 
 @app.get("/preferences/options")
 async def get_preferences_options():
+    """Return the available zodiac types, house systems and aspects."""
     return {
         "zodiac_types": list(ZODIAC_TYPES),
         "house_systems": [
@@ -276,11 +465,33 @@ async def get_preferences_options():
     }
 
 
+# ---------------------------------------------------------------------------
+# API routes – Chart generation
+# ---------------------------------------------------------------------------
+
+
 @app.post("/chart")
 async def generate_chart(payload: ChartRequest):
+    """
+    Generate a natal chart for the supplied birth data.
+
+    Downloads any missing Swiss Ephemeris files for the birth year,
+    computes planetary and house positions, and renders an SVG chart.
+    """
     try:
         data = payload.data
         data2 = payload.data2 or _load_preferences()
+
+        if data.year is None:
+            raise ValueError("year is required to select ephemeris files")
+
+        try:
+            ensure_ephemeris_for_year(data.year)
+        except Exception as ephe_err:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ephemeris data unavailable: {ephe_err}",
+            ) from ephe_err
 
         subject = AstrologicalSubjectFactory.from_birth_data(
             name=data.name,
@@ -300,17 +511,16 @@ async def generate_chart(payload: ChartRequest):
         )
 
         print(
-            f"[Backend] Generating chart for: {subject.name} ({data.year}-{data.month}-{data.day} {data.hour}:{data.minute})"
+            f"[Backend] Generating chart for: {subject.name} "
+            f"({data.year}-{data.month}-{data.day} {data.hour}:{data.minute})"
         )
 
         aspect_list = _get_active_aspects(data2)
-
         print(f"[Backend] Active aspects: {aspect_list}")
 
         chart_data = ChartDataFactory.create_natal_chart_data(
             subject, active_aspects=aspect_list
         )
-
         print(f"[Backend] Chart data generated successfully for {subject.name}")
 
         # Planets
@@ -368,7 +578,6 @@ async def generate_chart(payload: ChartRequest):
                 }
 
         chart_drawer = ChartDrawer(chart_data=chart_data)
-
         filename = f"{data.name.replace(' ', '-')}-chart"
         svg_full_path = f"/charts_output/{filename}.svg"
 
@@ -379,7 +588,6 @@ async def generate_chart(payload: ChartRequest):
             if svg_path.exists():
                 svg_path.unlink()
 
-            # Always render the full chart so other right-side panels are preserved.
             chart_drawer.save_svg(output_path=str(STATIC_CHART_DIR), filename=filename)
 
             if not aspect_list and svg_path.exists():
@@ -421,35 +629,81 @@ async def generate_chart(payload: ChartRequest):
         }
 
     except Exception as e:
-
         print(f"[Backend] Error generating chart: {e}")
-
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# @app.get("/debug/{name}")
-# async def debug_subject(name: str):
-#     subject = AstrologicalSubjectFactory.from_birth_data(
-#         name=name,
-#         year=1990,
-#         month=7,
-#         day=15,
-#         hour=10,
-#         minute=30,
-#         lat=41.9,
-#         lng=12.5,
-#         tz_str="Europe/Rome",
-#         online=False,
-#     )
-#     attrs = [attr for attr in dir(subject) if not attr.startswith("_")]
-#     return {"available_attributes": attrs}
+# ---------------------------------------------------------------------------
+# API routes – Ephemeris management
+# ---------------------------------------------------------------------------
+
+
+@app.get("/ephemeris/status")
+async def ephemeris_status():
+    """Return the current ephemeris directory and the list of installed files."""
+    ephe_dir = _get_ephemeris_dir()
+    files = sorted(f.name for f in ephe_dir.glob("*.se1")) if ephe_dir.exists() else []
+    return {
+        "ephe_dir": str(ephe_dir),
+        "exists": ephe_dir.exists(),
+        "files": files,
+        "note": "Files are downloaded on demand when a chart is generated.",
+    }
+
+
+@app.post("/ephemeris/ensure")
+async def ephemeris_ensure(year: int, include_asteroids: bool = False):
+    """
+    Ensure the required ephemeris files for a given year are present.
+
+    Useful for pre-downloading or testing.
+    """
+    try:
+        path = ensure_ephemeris_for_year(year, include_asteroids=include_asteroids)
+        files = sorted(f.name for f in path.glob("*.se1"))
+        return {
+            "ok": True,
+            "year": year,
+            "ephe_dir": str(path),
+            "files": files,
+            "required": _required_ephe_files(year, include_asteroids),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+# ---------------------------------------------------------------------------
+# API routes – Debug
+# ---------------------------------------------------------------------------
 
 
 @app.get("/debug/charts")
 async def debug_charts():
+    """List SVG files currently present in the charts output directory."""
     files = [f.name for f in STATIC_CHART_DIR.glob("*.svg")]
     return {
         "static_dir": str(STATIC_CHART_DIR),
         "files": files,
         "exists": STATIC_CHART_DIR.exists(),
     }
+
+
+@app.get("/debug/ephe/{year}")
+async def debug_ephe(year: int):
+    """Ensure ephemeris data for a year and return the resulting file list."""
+    path = ensure_ephemeris_for_year(year)
+    files = list(path.glob("*.se1"))
+    return {
+        "ephe_dir": str(path),
+        "files": [f.name for f in files],
+        "required_for_year": _required_ephe_files(year),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8080))
+    uvicorn.run(app, host="127.0.0.1", port=port)

@@ -3,7 +3,7 @@
     <AppMenuBar class="relative z-40 m-0! p-0! rounded-none! border-none!" />
 
     <div class="flex-1 min-h-0 overflow-hidden">
-      <Toast position="bottom-right" />
+      <Toast position="top-right" />
       <div class="content h-full min-h-0 bg-gray-50">
         <div class="h-full min-h-0 w-full">
           <div class="relative h-full min-h-0 w-full">
@@ -50,7 +50,7 @@
                       <InputNumber
                         v-model="formData.year"
                         :format="false"
-                        :min="1500"
+                        :min="-3500"
                         fluid
                         placeholder="Year"
                         size="small"
@@ -164,6 +164,22 @@
                   </div>
                 </div>
               </form>
+              <!-- Loading overlay while ephemeris / chart is in progress -->
+              <!-- Progress bar when the drawer is open -->
+              <div v-if="loading && showSidebar" class="mt-5 space-y-2">
+                <p class="text-sm font-medium text-gray-700">
+                  {{
+                    loadingStage === 'ephemeris'
+                      ? 'Downloading ephemeris data…'
+                      : 'Generating birth chart…'
+                  }}
+                </p>
+                <ProgressBar mode="indeterminate" style="height: 6px" />
+                <p v-if="loadingStage === 'ephemeris'" class="text-xs text-gray-500">
+                  First use for this century downloads a small data file. It is stored locally for
+                  later charts.
+                </p>
+              </div>
             </Drawer>
 
             <!-- Right Side: Chart Display -->
@@ -256,6 +272,27 @@
                 >
                   <p class="text-xl">Your birth chart will appear here</p>
                 </div>
+              </div>
+              <!-- Progress overlay when the drawer is closed -->
+              <div
+                v-if="loading && !showSidebar"
+                class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-white/90 p-6"
+              >
+                <p class="text-sm font-medium text-gray-700">
+                  {{
+                    loadingStage === 'ephemeris'
+                      ? 'Downloading ephemeris data…'
+                      : 'Generating birth chart…'
+                  }}
+                </p>
+                <ProgressBar mode="indeterminate" class="w-full max-w-xs" style="height: 6px" />
+                <p
+                  v-if="loadingStage === 'ephemeris'"
+                  class="text-xs text-gray-500 text-center max-w-xs"
+                >
+                  First use for this century downloads a small data file. It is stored locally for
+                  later charts.
+                </p>
               </div>
             </div>
           </div>
@@ -387,6 +424,7 @@ import Button from 'primevue/button'
 import Drawer from 'primevue/drawer'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
+import ProgressBar from 'primevue/progressbar'
 
 const preferences = ref({
   zodiac_type: 'Tropical',
@@ -404,6 +442,7 @@ const showPreferencesDialog = ref(false)
 const preferencesDraft = ref(null)
 const loadingPreferences = ref(false)
 const savingPreferences = ref(false)
+const loadingStage = ref(null) // null | 'ephemeris' | 'chart'
 
 const initialFormData = {
   name: '',
@@ -435,6 +474,12 @@ const backendBaseUrl = ref('http://127.0.0.1:8080')
 const toast = useToast()
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const ephemerisStatus = ref({
+  ephe_dir: '',
+  exists: false,
+  files: [],
+})
 
 const toPlainPayload = (value) => {
   if (value === null || value === undefined) {
@@ -646,11 +691,32 @@ const updateAspectPreference = async (aspectKey, enabled) => {
 const generateChart = async ({ notifySuccess = true } = {}) => {
   console.log('Generating chart with data:', formData.value)
   loading.value = true
+  loadingStage.value = 'ephemeris'
   chartData.value = null
   svgUrl.value = null
   showFullScreen.value = false
 
   try {
+    // Step 1 – ensure ephemeris files for this year
+    if (formData.value.year != null) {
+      try {
+        await apiCall('POST', `/ephemeris/ensure?year=${formData.value.year}`)
+        await loadEphemerisStatus()
+      } catch (epheErr) {
+        const isEpheError = (epheErr.message || '').toLowerCase().includes('ephemeris')
+        toast.add({
+          severity: 'error',
+          summary: isEpheError ? 'Ephemeris data needed' : 'Error',
+          detail: epheErr.message || 'Could not download ephemeris data',
+          life: 6000,
+        })
+        return
+      }
+    }
+
+    // Step 2 – generate the chart
+    loadingStage.value = 'chart'
+
     const res = await apiCall('POST', '/chart', {
       data: { ...formData.value },
       data2: preferences.value,
@@ -660,7 +726,7 @@ const generateChart = async ({ notifySuccess = true } = {}) => {
 
     let svgPath = res.svg_path
     if (svgPath && svgPath.startsWith('/charts_output')) {
-      svgUrl.value = `${backendBaseUrl.value}${svgPath}?t=${Date.now()}` // Cache-bust to always show latest SVG
+      svgUrl.value = `${backendBaseUrl.value}${svgPath}?t=${Date.now()}`
     } else {
       const joiner = svgPath && svgPath.includes('?') ? '&' : '?'
       svgUrl.value = svgPath ? `${svgPath}${joiner}t=${Date.now()}` : svgPath
@@ -671,14 +737,16 @@ const generateChart = async ({ notifySuccess = true } = {}) => {
     }
   } catch (e) {
     console.error('Chart generation error:', e)
+    const isEpheError = (e.message || '').toLowerCase().includes('ephemeris')
     toast.add({
       severity: 'error',
-      summary: 'Error',
+      summary: isEpheError ? 'Ephemeris data needed' : 'Error',
       detail: e.message || 'Failed to generate chart',
-      life: 5000,
+      life: 6000,
     })
   } finally {
     loading.value = false
+    loadingStage.value = null
   }
 }
 
@@ -750,6 +818,37 @@ const resetForm = () => {
   showMagnifier.value = false
 }
 
+const loadEphemerisStatus = async () => {
+  try {
+    const status = await apiCallWithRetry('GET', '/ephemeris/status')
+    ephemerisStatus.value = status
+  } catch (e) {
+    console.warn('Could not load ephemeris status', e)
+  }
+}
+
+const ensureEphemerisForYear = async (year) => {
+  try {
+    const result = await apiCall('POST', `/ephemeris/ensure?year=${year}`)
+    toast.add({
+      severity: 'success',
+      summary: 'Ephemeris ready',
+      detail: `Files for year ${year} are available.`,
+      life: 3000,
+    })
+    await loadEphemerisStatus()
+    return result
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: 'Download failed',
+      detail: e.message || 'Could not download ephemeris data',
+      life: 5000,
+    })
+    throw e
+  }
+}
+
 // Provide to child components (AppMenuBar)
 provide('saveChart', saveChartToFile)
 provide('openChart', openChartFromFile)
@@ -774,5 +873,6 @@ onMounted(async () => {
   await loadPreferenceOptions()
   await loadPreferences()
   await loadRecentFiles()
+  await loadEphemerisStatus()
 })
 </script>
