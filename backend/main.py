@@ -7,6 +7,7 @@ downloaded on demand into the user's data directory.
 
 import os
 import re
+import shutil
 import sys
 import json
 import threading
@@ -182,6 +183,30 @@ def _required_ephe_files(year: int, include_asteroids: bool = False) -> List[str
     return files
 
 
+def _get_bundled_ephe_dir() -> Optional[Path]:
+    """Return the repository's bundled ephemeris directory if present."""
+    candidate = (Path(__file__).resolve().parent / "../ephe").resolve()
+    return candidate if candidate.exists() else None
+
+
+def _ensure_ephe_file_available(filename: str, dest_dir: Path) -> bool:
+    """Make sure a required ephemeris file exists locally, using bundled data first."""
+    dest = dest_dir / filename
+    if dest.exists() and dest.stat().st_size > 10_000:
+        return True
+
+    bundled_dir = _get_bundled_ephe_dir()
+    if bundled_dir is not None:
+        bundled_file = bundled_dir / filename
+        if bundled_file.exists() and bundled_file.stat().st_size > 10_000:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(bundled_file, dest)
+            print(f"[Ephemeris] Copied {filename} from bundled data")
+            return True
+
+    return False
+
+
 def _download_ephe_file(filename: str, dest_dir: Path) -> None:
     """
     Download a single ephemeris file if it does not already exist.
@@ -225,7 +250,8 @@ def ensure_ephemeris_for_year(year: int, include_asteroids: bool = False) -> Pat
         required = _required_ephe_files(year, include_asteroids=include_asteroids)
 
         for fname in required:
-            _download_ephe_file(fname, ephe_dir)
+            if not _ensure_ephe_file_available(fname, ephe_dir):
+                _download_ephe_file(fname, ephe_dir)
 
         swe.set_ephe_path(str(ephe_dir))
         print(f"[Ephemeris] Using path: {ephe_dir}")

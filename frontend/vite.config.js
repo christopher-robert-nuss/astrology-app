@@ -1,13 +1,12 @@
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import Components from 'unplugin-vue-components/vite'
 import { PrimeVueResolver } from '@primevue/auto-import-resolver'
 import tailwindcss from '@tailwindcss/vite'
-import electron from 'vite-plugin-electron/simple' // Simple preset from docs
+import electron from 'vite-plugin-electron/simple'
 
-// https://vite.dev/config/
 export default defineConfig(({ command }) => {
   const isServe = command === 'serve'
 
@@ -21,19 +20,16 @@ export default defineConfig(({ command }) => {
       vueDevTools(),
       electron({
         main: {
-          // Main process entry (create this file next)
           entry: 'electron/main.js',
           onstart({ startup }) {
             if (isServe) {
-              startup() // Auto-start Electron in dev
+              startup()
             }
           },
         },
-        // Preload optional for secure IPC (recommended for backend communication)
         preload: {
           input: 'electron/preload.js',
         },
-        // Renderer polyfills (Node.js APIs if needed, but prefer IPC for backend)
         renderer: {},
       }),
     ],
@@ -47,9 +43,14 @@ export default defineConfig(({ command }) => {
         ignored: ['**/public/charts_output/**'],
       },
     },
-    // Build output for Electron
     build: {
       outDir: 'dist-renderer',
+    },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: './src/test/setup.js',
+      include: ['src/**/*.spec.{js,ts,jsx,tsx}'],
     },
   }
 })
