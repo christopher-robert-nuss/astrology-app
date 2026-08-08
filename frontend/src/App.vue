@@ -240,26 +240,55 @@
 
                   <div
                     v-if="preferencesOptions.aspects.length"
-                    class="mt-4 shrink-0 border-t border-gray-200 pt-4"
+                    class="chart-aspects-panel mt-4 shrink-0 pt-4"
                   >
-                    <p class="mb-2 text-sm font-semibold text-gray-700">Aspect Display</p>
+                    <div class="chart-aspects-header mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p class="m-0 text-sm font-semibold">Visible aspects</p>
+                      <div class="chart-aspects-actions flex items-center gap-2">
+                        <Button
+                          label="All"
+                          text
+                          size="small"
+                          class="chart-aspects-preset"
+                          :disabled="savingPreferences || loadingPreferences || loading"
+                          @click="applyChartAspectPreset('all')"
+                        />
+                        <Button
+                          label="Major"
+                          text
+                          size="small"
+                          class="chart-aspects-preset"
+                          :disabled="savingPreferences || loadingPreferences || loading"
+                          @click="applyChartAspectPreset('major')"
+                        />
+                        <Button
+                          label="None"
+                          text
+                          size="small"
+                          class="chart-aspects-preset"
+                          :disabled="savingPreferences || loadingPreferences || loading"
+                          @click="applyChartAspectPreset('none')"
+                        />
+                      </div>
+                    </div>
                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                      <label
+                      <button
                         v-for="aspect in preferencesOptions.aspects"
                         :key="`chart-aspect-${aspect.key}`"
-                        class="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm"
+                        type="button"
+                        :class="[
+                          'chart-aspect-chip',
+                          preferences.aspects_enabled[aspect.key] && 'chart-aspect-chip-active',
+                        ]"
+                        :aria-pressed="!!preferences.aspects_enabled[aspect.key]"
+                        :disabled="savingPreferences || loadingPreferences || loading"
+                        @click="
+                          updateAspectPreference(aspect.key, !preferences.aspects_enabled[aspect.key])
+                        "
                       >
-                        <input
-                          type="checkbox"
-                          :checked="!!preferences.aspects_enabled[aspect.key]"
-                          :disabled="savingPreferences || loadingPreferences || loading"
-                          @change="updateAspectPreference(aspect.key, $event.target.checked)"
-                        />
-                        <span>
-                          {{ aspect.label }}
-                          <span class="text-gray-400">(orb {{ aspect.default_orb }})</span>
-                        </span>
-                      </label>
+                        <span class="chart-aspect-chip-label">{{ aspect.label }}</span>
+                        <span class="chart-aspect-chip-orb">orb {{ aspect.default_orb }}</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -385,23 +414,54 @@
               </div>
 
               <div>
-                <label class="mb-2 block text-sm font-medium text-gray-700">Enabled Aspects</label>
+                <div class="chart-aspects-header mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <label class="m-0 block text-sm font-medium text-gray-700">Enabled Aspects</label>
+                  <div class="chart-aspects-actions flex items-center gap-2">
+                    <Button
+                      label="All"
+                      text
+                      size="small"
+                      class="chart-aspects-preset"
+                      :disabled="savingPreferences || loadingPreferences"
+                      @click="applyDraftAspectPreset('all')"
+                    />
+                    <Button
+                      label="Major"
+                      text
+                      size="small"
+                      class="chart-aspects-preset"
+                      :disabled="savingPreferences || loadingPreferences"
+                      @click="applyDraftAspectPreset('major')"
+                    />
+                    <Button
+                      label="None"
+                      text
+                      size="small"
+                      class="chart-aspects-preset"
+                      :disabled="savingPreferences || loadingPreferences"
+                      @click="applyDraftAspectPreset('none')"
+                    />
+                  </div>
+                </div>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <label
+                  <button
                     v-for="aspect in preferencesOptions.aspects"
                     :key="aspect.key"
-                    class="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm"
+                    type="button"
+                    :class="[
+                      'chart-aspect-chip',
+                      preferencesDraft.aspects_enabled[aspect.key] && 'chart-aspect-chip-active',
+                    ]"
+                    :aria-pressed="!!preferencesDraft.aspects_enabled[aspect.key]"
+                    :disabled="savingPreferences || loadingPreferences"
+                    @click="
+                      preferencesDraft.aspects_enabled[aspect.key] =
+                        !preferencesDraft.aspects_enabled[aspect.key]
+                    "
                   >
-                    <input
-                      v-model="preferencesDraft.aspects_enabled[aspect.key]"
-                      type="checkbox"
-                      :disabled="savingPreferences || loadingPreferences"
-                    />
-                    <span
-                      >{{ aspect.label }}
-                      <span class="text-gray-400">(orb {{ aspect.default_orb }})</span></span
-                    >
-                  </label>
+                    <span class="chart-aspect-chip-label">{{ aspect.label }}</span>
+                    <span class="chart-aspect-chip-orb">orb {{ aspect.default_orb }}</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -667,6 +727,37 @@ const savePreferences = async () => {
   }
 }
 
+const MAJOR_ASPECT_NAMES = new Set([
+  'conjunction',
+  'opposition',
+  'trine',
+  'square',
+  'sextile',
+])
+
+const isMajorAspect = (aspect) => {
+  const key = String(aspect.key || '').toLowerCase()
+  const label = String(aspect.label || '').toLowerCase()
+  return MAJOR_ASPECT_NAMES.has(key) || MAJOR_ASPECT_NAMES.has(label)
+}
+
+const buildAspectPreset = (mode) => {
+  return Object.fromEntries(
+    preferencesOptions.value.aspects.map((aspect) => [
+      aspect.key,
+      mode === 'all' ? true : mode === 'major' ? isMajorAspect(aspect) : false,
+    ]),
+  )
+}
+
+const applyDraftAspectPreset = (mode) => {
+  if (!preferencesDraft.value) return
+  preferencesDraft.value = normalizePreferences({
+    ...preferencesDraft.value,
+    aspects_enabled: buildAspectPreset(mode),
+  })
+}
+
 const updateAspectPreference = async (aspectKey, enabled) => {
   const previousPreferences = normalizePreferences(preferences.value)
   const nextPreferences = normalizePreferences({
@@ -675,6 +766,37 @@ const updateAspectPreference = async (aspectKey, enabled) => {
       ...preferences.value.aspects_enabled,
       [aspectKey]: enabled,
     },
+  })
+
+  preferences.value = nextPreferences
+  if (preferencesDraft.value) {
+    preferencesDraft.value = normalizePreferences(nextPreferences)
+  }
+
+  const result = await persistPreferences(nextPreferences, {
+    suppressErrorToast: true,
+    regenerateChart: true,
+  })
+
+  if (!result.ok) {
+    preferences.value = previousPreferences
+    if (preferencesDraft.value) {
+      preferencesDraft.value = normalizePreferences(previousPreferences)
+    }
+    toast.add({
+      severity: 'error',
+      summary: 'Update failed',
+      detail: 'Could not update aspect preferences.',
+      life: 4000,
+    })
+  }
+}
+
+const applyChartAspectPreset = async (mode) => {
+  const previousPreferences = normalizePreferences(preferences.value)
+  const nextPreferences = normalizePreferences({
+    ...preferences.value,
+    aspects_enabled: buildAspectPreset(mode),
   })
 
   preferences.value = nextPreferences
