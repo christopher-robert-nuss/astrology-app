@@ -21,6 +21,7 @@
   background: rgba(255, 255, 255, 0.72);
   color: #374151;
   backdrop-filter: blur(4px);
+  box-shadow: 0 8px 24px -20px rgba(47, 56, 82, 0.55);
 }
 
 .chart-empty-state {
@@ -82,6 +83,19 @@
   font-size: 0.94rem;
   line-height: 1.5;
   color: #677390;
+}
+
+.chart-empty-action.p-button {
+  border: 1px solid #c9cee8;
+  background: linear-gradient(135deg, #f7f9ff 0%, #e7ebff 100%);
+  color: #314065;
+  border-radius: 9999px;
+  padding-inline: 1rem;
+}
+
+.chart-empty-action.p-button:hover {
+  background: linear-gradient(135deg, #eef2ff 0%, #dde4ff 100%);
+  border-color: #b7bfe4;
 }
 
 @media print {

@@ -279,6 +279,13 @@
                   <p class="chart-empty-copy">
                     Open Birth Data, enter birth time and location, then generate your chart.
                   </p>
+                  <Button
+                    label="Open Birth Data"
+                    icon="pi pi-arrow-right"
+                    iconPos="right"
+                    class="chart-empty-action mt-6"
+                    @click="showSidebar = true"
+                  />
                 </div>
               </div>
               <!-- Progress overlay when the drawer is closed -->
