@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-dvh flex-col overflow-hidden">
+  <div class="fixed inset-0 flex flex-col overflow-hidden">
     <AppMenuBar class="relative z-40 m-0! p-0! rounded-none! border-none!" />
 
     <div class="flex-1 min-h-0 overflow-hidden">
@@ -182,95 +182,159 @@
               </div>
             </Drawer>
 
-            <!-- Right Side: Chart Display -->
-            <div class="relative z-0 min-w-0 h-full min-h-0 w-full overflow-hidden bg-white">
-              <Button
-                label="Birth Data"
-                icon="pi pi-bars"
-                class="absolute left-6 top-6 lg:left-8 lg:top-8"
-                severity="secondary"
-                @click="showSidebar = true"
-                :pt="{ root: { class: 'rounded-none!' } }"
-                :ptOptions="{ mergeProps: true }"
-              />
-              <div class="bg-white h-full min-h-0 overflow-auto">
-                <div v-if="svgUrl" class="h-full min-h-0 flex flex-col p-6 lg:p-8">
-                  <div class="flex-1 min-h-0 flex justify-center items-center">
-                    <div
-                      class="relative h-full w-full min-h-0 min-w-0 overflow-hidden flex justify-center items-center"
-                    >
-                      <img
-                        :src="svgUrl"
-                        :key="svgUrl"
-                        alt="Birth Chart"
-                        class="print-chart-image block h-auto w-auto max-h-full max-w-full object-contain"
-                      />
-                      <div
-                        v-if="showMagnifier"
-                        class="absolute inset-0 z-10 overflow-hidden rounded border border-gray-300 bg-white shadow-lg"
-                      >
-                        <div class="h-full w-full overflow-auto">
-                          <img
-                            :src="svgUrl"
-                            alt="Magnified Birth Chart"
-                            class="block max-w-none"
-                            :style="{
-                              width: `${magnifierScale * 100}%`,
-                              height: 'auto',
-                            }"
-                          />
+            <!-- Chart Display -->
+            <div class="chart-stage relative z-0 h-full min-h-0 min-w-0 w-full overflow-hidden">
+              <div class="chart-shell">
+                <div
+                  :class="[
+                    'chart-shell__main',
+                    svgUrl ? 'chart-shell__main--chart' : 'chart-shell__main--empty',
+                  ]"
+                >
+                  <template v-if="svgUrl">
+                    <div class="chart-shell__toolbar">
+                      <div class="chart-shell__toolbar-primary">
+                        <Button
+                          label="Edit Birth Data"
+                          icon="pi pi-bars"
+                          class="chart-shell__birth-data"
+                          severity="secondary"
+                          @click="showSidebar = true"
+                        />
+                      </div>
+                      <div class="chart-shell__toolbar-secondary">
+                        <Button
+                          label="View Full Screen"
+                          icon="pi pi-external-link"
+                          @click="showFullScreen = true"
+                          severity="secondary"
+                          class="h-10!"
+                        />
+                        <Button
+                          :label="showMagnifier ? 'Hide Magnifier' : 'Show Magnifier'"
+                          icon="pi pi-search-plus"
+                          @click="toggleMagnifier"
+                          severity="secondary"
+                          class="h-10!"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="chart-shell__viewport">
+                      <div class="chart-shell__chart-frame">
+                        <img
+                          :src="svgUrl"
+                          :key="svgUrl"
+                          alt="Birth Chart"
+                          class="print-chart-image block h-auto w-auto max-h-full max-w-full object-contain"
+                        />
+                        <div
+                          v-if="showMagnifier"
+                          class="absolute inset-0 z-10 overflow-hidden rounded-[1.15rem] border border-gray-300 bg-white shadow-lg"
+                        >
+                          <div class="h-full w-full overflow-auto">
+                            <img
+                              :src="svgUrl"
+                              alt="Magnified Birth Chart"
+                              class="block max-w-none"
+                              :style="{
+                                width: `${magnifierScale * 100}%`,
+                                height: 'auto',
+                              }"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div class="pt-4 flex justify-center gap-3 shrink-0">
-                    <Button
-                      label="View Full Screen"
-                      icon="pi pi-external-link"
-                      @click="showFullScreen = true"
-                      severity="secondary"
-                      class="h-10!"
-                    />
-                    <Button
-                      :label="showMagnifier ? 'Hide Magnifier' : 'Show Magnifier'"
-                      icon="pi pi-search-plus"
-                      @click="toggleMagnifier"
-                      severity="secondary"
-                      class="h-10!"
-                    />
-                  </div>
+
+                    <div v-if="preferencesOptions.aspects.length" class="chart-shell__dock">
+                      <div class="chart-shell__dock-header">
+                        <p class="m-0 text-sm font-semibold">Visible aspects</p>
+                        <div class="chart-aspects-actions flex items-center gap-2">
+                          <Button
+                            label="All"
+                            text
+                            size="small"
+                            class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
+                            :disabled="savingPreferences || loadingPreferences || loading"
+                            @click="applyChartAspectPreset('all')"
+                          />
+                          <Button
+                            label="Major"
+                            text
+                            size="small"
+                            class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
+                            :disabled="savingPreferences || loadingPreferences || loading"
+                            @click="applyChartAspectPreset('major')"
+                          />
+                          <Button
+                            label="None"
+                            text
+                            size="small"
+                            class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
+                            :disabled="savingPreferences || loadingPreferences || loading"
+                            @click="applyChartAspectPreset('none')"
+                          />
+                        </div>
+                      </div>
+                      <div class="chart-shell__aspect-list">
+                        <button
+                          v-for="aspect in preferencesOptions.aspects"
+                          :key="`chart-aspect-${aspect.key}`"
+                          type="button"
+                          :class="[
+                            'flex min-h-[2.35rem] min-w-42 items-center justify-between gap-2 rounded-[0.7rem] border border-[#d4daef] bg-[rgba(255,255,255,0.76)] px-3 py-2 text-left text-[#425072] hover:border-[#bfc9ec] hover:bg-[rgba(241,245,255,0.82)] disabled:cursor-not-allowed disabled:opacity-65',
+                            preferences.aspects_enabled[aspect.key] &&
+                              'border-[#98a6df] bg-[linear-gradient(140deg,rgba(230,236,255,0.9)_0%,rgba(245,248,255,0.95)_100%)] shadow-[inset_0_0_0_1px_rgba(143,156,212,0.4)]',
+                          ]"
+                          :aria-pressed="!!preferences.aspects_enabled[aspect.key]"
+                          :disabled="savingPreferences || loadingPreferences || loading"
+                          @click="
+                            updateAspectPreference(aspect.key, !preferences.aspects_enabled[aspect.key])
+                          "
+                        >
+                          <span class="text-sm font-medium">{{ aspect.label }}</span>
+                          <span
+                            class="rounded-full bg-[rgba(232,237,255,0.8)] px-2 py-0.5 text-xs whitespace-nowrap text-[#7a85ab]"
+                            >orb {{ aspect.default_orb }}</span
+                          >
+                        </button>
+                      </div>
+                    </div>
+                  </template>
 
                   <div
-                    v-if="preferencesOptions.aspects.length"
-                    class="mt-4 shrink-0 border-t border-gray-200 pt-4"
+                    v-else
+                    class="chart-shell__empty flex h-full min-h-0 flex-col items-center justify-center text-center text-[#5f6b84]"
                   >
-                    <p class="mb-2 text-sm font-semibold text-gray-700">Aspect Display</p>
-                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                      <label
-                        v-for="aspect in preferencesOptions.aspects"
-                        :key="`chart-aspect-${aspect.key}`"
-                        class="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          :checked="!!preferences.aspects_enabled[aspect.key]"
-                          :disabled="savingPreferences || loadingPreferences || loading"
-                          @change="updateAspectPreference(aspect.key, $event.target.checked)"
-                        />
-                        <span>
-                          {{ aspect.label }}
-                          <span class="text-gray-400">(orb {{ aspect.default_orb }})</span>
-                        </span>
-                      </label>
+                    <div
+                      class="relative mb-5 flex h-44 w-44 items-center justify-center"
+                      aria-hidden="true"
+                    >
+                      <div class="chart-empty-orbit"></div>
+                      <div class="chart-empty-axis"></div>
                     </div>
+                    <p
+                      class="mb-2 text-[0.68rem] font-semibold tracking-[0.12em] text-[#7078a3] uppercase"
+                    >
+                      Natal chart workspace
+                    </p>
+                    <p
+                      class="mb-1 text-[clamp(1.5rem,1.3rem+0.6vw,1.95rem)] leading-[1.2] font-medium text-[#2f3852]"
+                    >
+                      Your birth chart will appear here
+                    </p>
+                    <p class="max-w-md text-[0.94rem] leading-normal text-[#677390]">
+                      Open Birth Data, enter birth time and location, then generate your chart.
+                    </p>
+                    <Button
+                      label="Open Birth Data"
+                      icon="pi pi-arrow-right"
+                      iconPos="right"
+                      class="mt-6 rounded-full border border-[#c9cee8] bg-[linear-gradient(135deg,#f7f9ff_0%,#e7ebff_100%)] px-4 text-[#314065] hover:border-[#b7bfe4] hover:bg-[linear-gradient(135deg,#eef2ff_0%,#dde4ff_100%)]"
+                      @click="showSidebar = true"
+                    />
                   </div>
-                </div>
-
-                <div
-                  v-else
-                  class="h-full min-h-0 flex items-center justify-center text-center text-gray-400 p-6 lg:p-8"
-                >
-                  <p class="text-xl">Your birth chart will appear here</p>
                 </div>
               </div>
               <!-- Progress overlay when the drawer is closed -->
@@ -372,23 +436,58 @@
               </div>
 
               <div>
-                <label class="mb-2 block text-sm font-medium text-gray-700">Enabled Aspects</label>
-                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <label
+                <div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-[#4a5577]">
+                  <label class="m-0 block text-sm font-medium text-gray-700">Enabled Aspects</label>
+                  <div class="chart-aspects-actions flex items-center gap-2">
+                    <Button
+                      label="All"
+                      text
+                      size="small"
+                      class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
+                      :disabled="savingPreferences || loadingPreferences"
+                      @click="applyDraftAspectPreset('all')"
+                    />
+                    <Button
+                      label="Major"
+                      text
+                      size="small"
+                      class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
+                      :disabled="savingPreferences || loadingPreferences"
+                      @click="applyDraftAspectPreset('major')"
+                    />
+                    <Button
+                      label="None"
+                      text
+                      size="small"
+                      class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
+                      :disabled="savingPreferences || loadingPreferences"
+                      @click="applyDraftAspectPreset('none')"
+                    />
+                  </div>
+                </div>
+                <div class="grid max-h-[min(30vh,13rem)] grid-cols-1 gap-2 overflow-y-auto pr-0.5 sm:grid-cols-2">
+                  <button
                     v-for="aspect in preferencesOptions.aspects"
                     :key="aspect.key"
-                    class="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm"
+                    type="button"
+                    :class="[
+                      'flex min-h-[2.35rem] items-center justify-between gap-2 rounded-[0.7rem] border border-[#d4daef] bg-[rgba(255,255,255,0.76)] px-3 py-2 text-left text-[#425072] hover:border-[#bfc9ec] hover:bg-[rgba(241,245,255,0.82)] disabled:cursor-not-allowed disabled:opacity-65',
+                      preferencesDraft.aspects_enabled[aspect.key] &&
+                        'border-[#98a6df] bg-[linear-gradient(140deg,rgba(230,236,255,0.9)_0%,rgba(245,248,255,0.95)_100%)] shadow-[inset_0_0_0_1px_rgba(143,156,212,0.4)]',
+                    ]"
+                    :aria-pressed="!!preferencesDraft.aspects_enabled[aspect.key]"
+                    :disabled="savingPreferences || loadingPreferences"
+                    @click="
+                      preferencesDraft.aspects_enabled[aspect.key] =
+                        !preferencesDraft.aspects_enabled[aspect.key]
+                    "
                   >
-                    <input
-                      v-model="preferencesDraft.aspects_enabled[aspect.key]"
-                      type="checkbox"
-                      :disabled="savingPreferences || loadingPreferences"
-                    />
+                    <span class="text-sm font-medium">{{ aspect.label }}</span>
                     <span
-                      >{{ aspect.label }}
-                      <span class="text-gray-400">(orb {{ aspect.default_orb }})</span></span
+                      class="rounded-full bg-[rgba(232,237,255,0.8)] px-2 py-0.5 text-xs whitespace-nowrap text-[#7a85ab]"
+                      >orb {{ aspect.default_orb }}</span
                     >
-                  </label>
+                  </button>
                 </div>
               </div>
             </div>
@@ -654,6 +753,37 @@ const savePreferences = async () => {
   }
 }
 
+const MAJOR_ASPECT_NAMES = new Set([
+  'conjunction',
+  'opposition',
+  'trine',
+  'square',
+  'sextile',
+])
+
+const isMajorAspect = (aspect) => {
+  const key = String(aspect.key || '').toLowerCase()
+  const label = String(aspect.label || '').toLowerCase()
+  return MAJOR_ASPECT_NAMES.has(key) || MAJOR_ASPECT_NAMES.has(label)
+}
+
+const buildAspectPreset = (mode) => {
+  return Object.fromEntries(
+    preferencesOptions.value.aspects.map((aspect) => [
+      aspect.key,
+      mode === 'all' ? true : mode === 'major' ? isMajorAspect(aspect) : false,
+    ]),
+  )
+}
+
+const applyDraftAspectPreset = (mode) => {
+  if (!preferencesDraft.value) return
+  preferencesDraft.value = normalizePreferences({
+    ...preferencesDraft.value,
+    aspects_enabled: buildAspectPreset(mode),
+  })
+}
+
 const updateAspectPreference = async (aspectKey, enabled) => {
   const previousPreferences = normalizePreferences(preferences.value)
   const nextPreferences = normalizePreferences({
@@ -662,6 +792,37 @@ const updateAspectPreference = async (aspectKey, enabled) => {
       ...preferences.value.aspects_enabled,
       [aspectKey]: enabled,
     },
+  })
+
+  preferences.value = nextPreferences
+  if (preferencesDraft.value) {
+    preferencesDraft.value = normalizePreferences(nextPreferences)
+  }
+
+  const result = await persistPreferences(nextPreferences, {
+    suppressErrorToast: true,
+    regenerateChart: true,
+  })
+
+  if (!result.ok) {
+    preferences.value = previousPreferences
+    if (preferencesDraft.value) {
+      preferencesDraft.value = normalizePreferences(previousPreferences)
+    }
+    toast.add({
+      severity: 'error',
+      summary: 'Update failed',
+      detail: 'Could not update aspect preferences.',
+      life: 4000,
+    })
+  }
+}
+
+const applyChartAspectPreset = async (mode) => {
+  const previousPreferences = normalizePreferences(preferences.value)
+  const nextPreferences = normalizePreferences({
+    ...preferences.value,
+    aspects_enabled: buildAspectPreset(mode),
   })
 
   preferences.value = nextPreferences
