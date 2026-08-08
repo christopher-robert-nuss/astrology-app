@@ -1,5 +1,11 @@
 <template>
-  <Menubar :model="items" breakpoint="100px" :pt="pt" :ptOptions="{ mergeProps: true }" />
+  <Menubar
+    :model="items"
+    breakpoint="100px"
+    class="app-menubar"
+    :pt="pt"
+    :ptOptions="{ mergeProps: true }"
+  />
 </template>
 
 <script setup>
@@ -8,64 +14,55 @@ import Menubar from 'primevue/menubar'
 
 const pt = {
   root: {
-    class: 'm-0 p-0 border-b border-surface-300 bg-surface-50 shadow-none rounded-none w-full',
+    class: 'app-menubar-root m-0 p-0 border-none bg-transparent shadow-none rounded-none w-full',
   },
   rootList: {
-    class: 'm-0 p-0 flex list-none bg-surface-50 w-full',
+    class: 'app-menubar-root-list m-0 p-0 flex list-none bg-transparent w-full',
   },
 
-  // Menu item container - removed relative positioning
   item: ({ context }) => ({
     class: [
-      'm-0 p-0 text-xs transition-colors duration-150',
-      context.focused && 'outline-none ring-2 ring-primary-500 ring-offset-1',
+      'app-menubar-item m-0 p-0 transition-colors duration-150',
+      context.focused && 'outline-none',
     ],
   }),
 
-  // Content wrapper
   itemContent: ({ context }) => ({
     class: [
-      'flex items-center gap-x-2 w-full cursor-pointer',
-      context.active ? 'bg-primary-100 text-primary-700' : 'hover:bg-surface-100',
-      context.focused && !context.active && 'bg-surface-100',
+      'app-menubar-item-content flex items-center gap-x-2 w-full cursor-pointer',
+      context.active && 'app-menubar-item-content-active',
     ],
   }),
 
-  // Link element
   itemLink: ({ context }) => ({
     class: [
-      'flex-1 flex items-center gap-x-2 no-underline text-sm font-medium rounded-none!',
-      context.active ? 'text-primary-700' : 'text-surface-700 hover:text-surface-900',
-      context.focused && 'text-surface-900',
+      'app-menubar-item-link flex-1 flex items-center gap-x-2 no-underline rounded-none!',
+      context.active && 'app-menubar-item-link-active',
     ],
   }),
 
-  // Icons
   itemIcon: ({ context }) => ({
     class: [
-      'text-base',
-      context.active ? 'text-primary-600' : 'text-surface-500 group-hover:text-surface-700',
-      context.focused && 'text-surface-700',
+      'app-menubar-item-icon text-sm',
+      context.active && 'app-menubar-item-icon-active',
     ],
   }),
 
-  // Label
   itemLabel: ({ context }) => ({
     class: [
-      'text-xs whitespace-nowrap',
-      context.active ? 'text-primary-700 font-medium' : 'text-surface-700',
+      'app-menubar-item-label whitespace-nowrap',
+      context.active && 'app-menubar-item-label-active',
     ],
   }),
 
-  // Submenu container - removed absolute + z-index; PrimeVue handles positioning
   submenu: {
-    class: 'bg-surface-0 border border-surface-200 shadow-xl rounded-md py-1 min-w-[200px]',
+    class: 'app-menubar-submenu border shadow-xl rounded-md py-1 min-w-[210px]',
   },
 
   submenuIcon: ({ context }) => ({
     class: [
-      'ml-auto text-sm transition-transform',
-      context.active && 'rotate-180 text-primary-600',
+      'ml-auto text-sm transition-transform app-menubar-submenu-icon',
+      context.active && 'rotate-180 app-menubar-submenu-icon-active',
     ],
   }),
 
@@ -117,7 +114,7 @@ const items = computed(() => [
   {
     label: 'Help',
     items: [
-      { label: 'Documentation', icon: 'pi pi-book', command: () => showDocs() },
+      { label: 'Project docs', icon: 'pi pi-book', command: () => showDocs() },
       { label: 'About Simple Astro Chart', icon: 'pi pi-info-circle', command: () => showAbout() },
     ],
   },

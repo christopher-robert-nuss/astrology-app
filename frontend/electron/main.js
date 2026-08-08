@@ -6,10 +6,66 @@ import net from 'net'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const isPlaywright = process.env.PLAYWRIGHT === '1'
+const useMockBackend = process.env.PLAYWRIGHT_ELECTRON_MOCK === '1'
 
 let mainWindow
 let backendProcess = null
 let backendPort = 8080
+
+function getMockApiResponse(method, endpoint) {
+  if (method === 'GET' && endpoint === '/preferences/options') {
+    return {
+      zodiac_types: ['Tropical', 'Sidereal'],
+      house_systems: [],
+      aspects: [
+        { key: 'conjunction', label: 'Conjunction', default_orb: 8 },
+        { key: 'opposition', label: 'Opposition', default_orb: 8 },
+        { key: 'trine', label: 'Trine', default_orb: 8 },
+        { key: 'square', label: 'Square', default_orb: 8 },
+        { key: 'sextile', label: 'Sextile', default_orb: 6 },
+        { key: 'quincunx', label: 'Quincunx', default_orb: 3 },
+        { key: 'semisextile', label: 'Semi-Sextile', default_orb: 2 },
+        { key: 'semisquare', label: 'Semi-Square', default_orb: 2 },
+        { key: 'sesquisquare', label: 'Sesquisquare', default_orb: 2 },
+      ],
+    }
+  }
+
+  if (method === 'GET' && endpoint === '/preferences') {
+    return {
+      zodiac_type: 'Tropical',
+      houses_system: 'P',
+      aspects_enabled: {
+        conjunction: true,
+        opposition: true,
+        trine: true,
+        square: true,
+        sextile: true,
+      },
+    }
+  }
+
+  if (method === 'GET' && endpoint === '/ephemeris/status') {
+    return {
+      ephe_dir: '',
+      exists: true,
+      files: [],
+    }
+  }
+
+  if (method === 'POST' && endpoint.startsWith('/ephemeris/ensure')) {
+    return { ok: true }
+  }
+
+  if (method === 'POST' && endpoint === '/chart') {
+    return {
+      svg_path: '/mock-chart.svg',
+    }
+  }
+
+  throw new Error(`No mock API response defined for ${method} ${endpoint}`)
+}
 
 function isPortAvailable(port) {
   return new Promise((resolve) => {
@@ -96,7 +152,9 @@ function createWindow() {
   const isDev = !app.isPackaged
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
-    mainWindow.webContents.openDevTools()
+    if (!isPlaywright) {
+      mainWindow.webContents.openDevTools()
+    }
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist-renderer/index.html'))
   }
@@ -113,6 +171,7 @@ function createWindow() {
 // Start FastAPI backend
 async function startBackend() {
   if (backendProcess) return
+  if (useMockBackend) return
 
   const launch = getBackendLaunchConfig()
   backendPort = await findAvailablePort(8080)
@@ -172,6 +231,10 @@ ipcMain.handle('stop-backend', () => {
 })
 
 ipcMain.handle('api-request', async (event, { method, endpoint, body }) => {
+  if (useMockBackend) {
+    return getMockApiResponse(method, endpoint)
+  }
+
   const baseUrl = `http://127.0.0.1:${backendPort}`
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {

@@ -9,6 +9,7 @@ import electron from 'vite-plugin-electron/simple'
 
 export default defineConfig(({ command }) => {
   const isServe = command === 'serve'
+  const webOnlyMode = process.env.VITE_WEB_ONLY === '1'
 
   return {
     plugins: [
@@ -18,20 +19,24 @@ export default defineConfig(({ command }) => {
         resolvers: [PrimeVueResolver()],
       }),
       vueDevTools(),
-      electron({
-        main: {
-          entry: 'electron/main.js',
-          onstart({ startup }) {
-            if (isServe) {
-              startup()
-            }
-          },
-        },
-        preload: {
-          input: 'electron/preload.js',
-        },
-        renderer: {},
-      }),
+      ...(!webOnlyMode
+        ? [
+            electron({
+              main: {
+                entry: 'electron/main.js',
+                onstart({ startup }) {
+                  if (isServe) {
+                    startup()
+                  }
+                },
+              },
+              preload: {
+                input: 'electron/preload.js',
+              },
+              renderer: {},
+            }),
+          ]
+        : []),
     ],
     resolve: {
       alias: {

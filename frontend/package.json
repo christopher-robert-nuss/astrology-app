@@ -39,13 +39,16 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:web": "cross-env VITE_WEB_ONLY=1 vite",
     "build": "vite build",
     "preview": "vite preview",
     "format": "prettier --write --experimental-cli src/",
     "electron:dev": "vite",
     "electron:build": "cross-env NODE_ENV=production vite build && electron-builder --linux deb",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "pw:electron": "playwright test -c playwright.electron.config.js",
+    "pw:electron:update": "playwright test -c playwright.electron.config.js --update-snapshots"
   },
   "dependencies": {
     "@primeuix/themes": "^2.0.3",
@@ -62,6 +65,7 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@primevue/auto-import-resolver": "^4.5.5",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/test-utils": "^2.4.6",

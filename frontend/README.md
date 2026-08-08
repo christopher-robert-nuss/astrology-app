@@ -36,3 +36,12 @@ npm run dev
 ```sh
 npm run build
 ```
+
+### Electron visual regression with Playwright
+
+```sh
+npm install
+npx playwright install chromium
+npm run pw:electron:update
+npm run pw:electron
+```

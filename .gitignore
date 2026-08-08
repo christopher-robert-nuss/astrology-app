@@ -53,6 +53,10 @@ coverage
 /cypress/videos/
 /cypress/screenshots/
 
+# Playwright
+/frontend/playwright-report/
+/frontend/test-results/
+
 # Vitest
 __screenshots__/
 
