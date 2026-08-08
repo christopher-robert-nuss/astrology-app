@@ -18,7 +18,17 @@ function getMockApiResponse(method, endpoint) {
     return {
       zodiac_types: ['Tropical', 'Sidereal'],
       house_systems: [],
-      aspects: [],
+      aspects: [
+        { key: 'conjunction', label: 'Conjunction', default_orb: 8 },
+        { key: 'opposition', label: 'Opposition', default_orb: 8 },
+        { key: 'trine', label: 'Trine', default_orb: 8 },
+        { key: 'square', label: 'Square', default_orb: 8 },
+        { key: 'sextile', label: 'Sextile', default_orb: 6 },
+        { key: 'quincunx', label: 'Quincunx', default_orb: 3 },
+        { key: 'semisextile', label: 'Semi-Sextile', default_orb: 2 },
+        { key: 'semisquare', label: 'Semi-Square', default_orb: 2 },
+        { key: 'sesquisquare', label: 'Sesquisquare', default_orb: 2 },
+      ],
     }
   }
 
@@ -26,7 +36,13 @@ function getMockApiResponse(method, endpoint) {
     return {
       zodiac_type: 'Tropical',
       houses_system: 'P',
-      aspects_enabled: {},
+      aspects_enabled: {
+        conjunction: true,
+        opposition: true,
+        trine: true,
+        square: true,
+        sextile: true,
+      },
     }
   }
 
@@ -35,6 +51,16 @@ function getMockApiResponse(method, endpoint) {
       ephe_dir: '',
       exists: true,
       files: [],
+    }
+  }
+
+  if (method === 'POST' && endpoint.startsWith('/ephemeris/ensure')) {
+    return { ok: true }
+  }
+
+  if (method === 'POST' && endpoint === '/chart') {
+    return {
+      svg_path: '/mock-chart.svg',
     }
   }
 

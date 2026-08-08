@@ -6,45 +6,20 @@
 
 @layer tailwind-base, primevue, tailwind-utilities;
 
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
 .chart-stage {
   background:
     radial-gradient(circle at 50% 50%, #eef2ff 0%, #f8f7ff 38%, #f7f9fc 100%),
     linear-gradient(165deg, #f7f9fc 0%, #eef2ff 100%);
-}
-
-.chart-stage-surface {
-  background: transparent;
-}
-
-.chart-trigger.p-button {
-  border: 1px solid #d5d8ea;
-  border-left: none;
-  border-radius: 0 9999px 9999px 0;
-  background: rgba(255, 255, 255, 0.64);
-  color: #455170;
-  min-height: 2.35rem;
-  padding-inline: 0.75rem 1rem;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 8px 24px -20px rgba(47, 56, 82, 0.55);
-}
-
-.chart-trigger.p-button:hover {
-  background: rgba(255, 255, 255, 0.8);
-  color: #2f3a5a;
-}
-
-.chart-empty-state {
-  color: #5f6b84;
-}
-
-.chart-empty-hero {
-  position: relative;
-  margin-bottom: 1.2rem;
-  height: 11rem;
-  width: 11rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .chart-empty-orbit {
@@ -67,106 +42,6 @@
   background: linear-gradient(180deg, #878ec1 0%, #d9dcf2 100%);
   transform: rotate(23deg);
   transform-origin: center;
-}
-
-.chart-empty-kicker {
-  margin: 0 0 0.45rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: #7078a3;
-}
-
-.chart-empty-title {
-  margin: 0 0 0.4rem;
-  font-size: clamp(1.5rem, 1.3rem + 0.6vw, 1.95rem);
-  line-height: 1.2;
-  font-weight: 520;
-  color: #2f3852;
-}
-
-.chart-empty-copy {
-  margin: 0;
-  max-width: 28rem;
-  font-size: 0.94rem;
-  line-height: 1.5;
-  color: #677390;
-}
-
-.chart-empty-action.p-button {
-  border: 1px solid #c9cee8;
-  background: linear-gradient(135deg, #f7f9ff 0%, #e7ebff 100%);
-  color: #314065;
-  border-radius: 9999px;
-  padding-inline: 1rem;
-}
-
-.chart-empty-action.p-button:hover {
-  background: linear-gradient(135deg, #eef2ff 0%, #dde4ff 100%);
-  border-color: #b7bfe4;
-}
-
-.chart-aspects-panel {
-  border-top: 1px solid rgba(183, 193, 232, 0.65);
-}
-
-.chart-aspects-header {
-  color: #4a5577;
-}
-
-.chart-aspects-preset.p-button {
-  color: #5c678d;
-  padding: 0.2rem 0.55rem;
-}
-
-.chart-aspects-preset.p-button:not(:disabled):hover {
-  color: #334266;
-  background: rgba(223, 230, 255, 0.45);
-}
-
-.chart-aspect-chip {
-  border: 1px solid #d4daef;
-  border-radius: 0.7rem;
-  background: rgba(255, 255, 255, 0.76);
-  min-height: 2.35rem;
-  padding: 0.5rem 0.72rem;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  color: #425072;
-}
-
-.chart-aspect-chip:not(:disabled):hover {
-  border-color: #bfc9ec;
-  background: rgba(241, 245, 255, 0.82);
-}
-
-.chart-aspect-chip:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.chart-aspect-chip-active {
-  border-color: #98a6df;
-  background: linear-gradient(140deg, rgba(230, 236, 255, 0.9) 0%, rgba(245, 248, 255, 0.95) 100%);
-  box-shadow: inset 0 0 0 1px rgba(143, 156, 212, 0.4);
-}
-
-.chart-aspect-chip-label {
-  font-size: 0.86rem;
-  font-weight: 500;
-}
-
-.chart-aspect-chip-orb {
-  font-size: 0.72rem;
-  color: #7a85ab;
-  background: rgba(232, 237, 255, 0.8);
-  border-radius: 9999px;
-  padding: 0.1rem 0.45rem;
-  white-space: nowrap;
 }
 
 .app-menubar {

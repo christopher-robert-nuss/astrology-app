@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-dvh flex-col overflow-hidden">
+  <div class="fixed inset-0 flex flex-col overflow-hidden">
     <AppMenuBar class="relative z-40 m-0! p-0! rounded-none! border-none!" />
 
     <div class="flex-1 min-h-0 overflow-hidden">
@@ -183,17 +183,25 @@
             </Drawer>
 
             <!-- Right Side: Chart Display -->
-            <div class="chart-stage relative z-0 min-w-0 h-full min-h-0 w-full overflow-hidden">
+            <div
+              class="chart-stage relative z-0 h-full min-h-0 min-w-0 w-full overflow-hidden"
+              style="--aspects-dock-height: 8.4rem"
+            >
               <Button
                 :label="svgUrl ? 'Edit Birth Data' : 'Birth Data'"
                 icon="pi pi-bars"
-                class="chart-trigger absolute left-0 top-6 lg:top-8"
+                class="absolute left-0 top-6 rounded-r-full border border-l-0 border-[#d5d8ea] bg-white/65 px-3 py-2 text-[#455170] shadow-[0_8px_24px_-20px_rgba(47,56,82,0.55)] backdrop-blur-[4px] hover:bg-white/80 hover:text-[#2f3a5a] lg:top-8"
                 severity="secondary"
                 @click="showSidebar = true"
               />
-              <div class="chart-stage-surface h-full min-h-0 overflow-auto">
-                <div v-if="svgUrl" class="h-full min-h-0 flex flex-col p-6 lg:p-8">
-                  <div class="flex-1 min-h-0 flex justify-center items-center">
+              <div class="h-full min-h-0 overflow-hidden">
+                <div
+                  v-if="svgUrl"
+                  class="relative flex h-full min-h-0 flex-col px-6 pt-5 pb-[calc(var(--aspects-dock-height)+0.8rem)] lg:px-8 lg:pt-7"
+                >
+                  <div
+                    class="flex h-full min-h-0 items-center justify-center overflow-hidden pb-[calc(var(--aspects-dock-height)+0.8rem)]"
+                  >
                     <div
                       class="relative h-full w-full min-h-0 min-w-0 overflow-hidden flex justify-center items-center"
                     >
@@ -221,7 +229,9 @@
                       </div>
                     </div>
                   </div>
-                  <div class="pt-4 flex justify-center gap-3 shrink-0">
+                  <div
+                    class="absolute right-0 bottom-[calc(var(--aspects-dock-height)+0.9rem)] left-0 z-[26] flex justify-center gap-3"
+                  >
                     <Button
                       label="View Full Screen"
                       icon="pi pi-external-link"
@@ -240,16 +250,16 @@
 
                   <div
                     v-if="preferencesOptions.aspects.length"
-                    class="chart-aspects-panel mt-4 shrink-0 pt-4"
+                    class="fixed right-6 bottom-2 left-6 z-[25] rounded-[0.82rem] border border-[rgba(183,193,232,0.72)] bg-[rgba(248,250,255,0.9)] px-2.5 pt-2 pb-2.5 shadow-[0_-8px_24px_-24px_rgba(57,69,110,0.5)] backdrop-blur-[6px] lg:right-8 lg:left-8"
                   >
-                    <div class="chart-aspects-header mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2 text-[#4a5577]">
                       <p class="m-0 text-sm font-semibold">Visible aspects</p>
                       <div class="chart-aspects-actions flex items-center gap-2">
                         <Button
                           label="All"
                           text
                           size="small"
-                          class="chart-aspects-preset"
+                          class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
                           :disabled="savingPreferences || loadingPreferences || loading"
                           @click="applyChartAspectPreset('all')"
                         />
@@ -257,7 +267,7 @@
                           label="Major"
                           text
                           size="small"
-                          class="chart-aspects-preset"
+                          class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
                           :disabled="savingPreferences || loadingPreferences || loading"
                           @click="applyChartAspectPreset('major')"
                         />
@@ -265,20 +275,21 @@
                           label="None"
                           text
                           size="small"
-                          class="chart-aspects-preset"
+                          class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
                           :disabled="savingPreferences || loadingPreferences || loading"
                           @click="applyChartAspectPreset('none')"
                         />
                       </div>
                     </div>
-                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    <div class="flex gap-2 overflow-x-auto overflow-y-hidden pb-1">
                       <button
                         v-for="aspect in preferencesOptions.aspects"
                         :key="`chart-aspect-${aspect.key}`"
                         type="button"
                         :class="[
-                          'chart-aspect-chip',
-                          preferences.aspects_enabled[aspect.key] && 'chart-aspect-chip-active',
+                          'flex min-h-[2.35rem] min-w-[10.5rem] flex-none items-center justify-between gap-2 rounded-[0.7rem] border border-[#d4daef] bg-[rgba(255,255,255,0.76)] px-3 py-2 text-left text-[#425072] hover:border-[#bfc9ec] hover:bg-[rgba(241,245,255,0.82)] disabled:cursor-not-allowed disabled:opacity-65',
+                          preferences.aspects_enabled[aspect.key] &&
+                            'border-[#98a6df] bg-[linear-gradient(140deg,rgba(230,236,255,0.9)_0%,rgba(245,248,255,0.95)_100%)] shadow-[inset_0_0_0_1px_rgba(143,156,212,0.4)]',
                         ]"
                         :aria-pressed="!!preferences.aspects_enabled[aspect.key]"
                         :disabled="savingPreferences || loadingPreferences || loading"
@@ -286,8 +297,11 @@
                           updateAspectPreference(aspect.key, !preferences.aspects_enabled[aspect.key])
                         "
                       >
-                        <span class="chart-aspect-chip-label">{{ aspect.label }}</span>
-                        <span class="chart-aspect-chip-orb">orb {{ aspect.default_orb }}</span>
+                        <span class="text-sm font-medium">{{ aspect.label }}</span>
+                        <span
+                          class="rounded-full bg-[rgba(232,237,255,0.8)] px-2 py-0.5 text-xs whitespace-nowrap text-[#7a85ab]"
+                          >orb {{ aspect.default_orb }}</span
+                        >
                       </button>
                     </div>
                   </div>
@@ -295,22 +309,29 @@
 
                 <div
                   v-else
-                  class="chart-empty-state h-full min-h-0 flex flex-col items-center justify-center text-center p-6 lg:p-8"
+                  class="flex h-full min-h-0 flex-col items-center justify-center p-6 text-center text-[#5f6b84] lg:p-8"
                 >
-                  <div class="chart-empty-hero" aria-hidden="true">
+                  <div
+                    class="relative mb-5 flex h-44 w-44 items-center justify-center"
+                    aria-hidden="true"
+                  >
                     <div class="chart-empty-orbit"></div>
                     <div class="chart-empty-axis"></div>
                   </div>
-                  <p class="chart-empty-kicker">Natal chart workspace</p>
-                  <p class="chart-empty-title">Your birth chart will appear here</p>
-                  <p class="chart-empty-copy">
+                  <p class="mb-2 text-[0.68rem] font-semibold tracking-[0.12em] text-[#7078a3] uppercase">
+                    Natal chart workspace
+                  </p>
+                  <p class="mb-1 text-[clamp(1.5rem,1.3rem+0.6vw,1.95rem)] leading-[1.2] font-medium text-[#2f3852]">
+                    Your birth chart will appear here
+                  </p>
+                  <p class="max-w-[28rem] text-[0.94rem] leading-[1.5] text-[#677390]">
                     Open Birth Data, enter birth time and location, then generate your chart.
                   </p>
                   <Button
                     label="Open Birth Data"
                     icon="pi pi-arrow-right"
                     iconPos="right"
-                    class="chart-empty-action mt-6"
+                    class="mt-6 rounded-full border border-[#c9cee8] bg-[linear-gradient(135deg,#f7f9ff_0%,#e7ebff_100%)] px-4 text-[#314065] hover:border-[#b7bfe4] hover:bg-[linear-gradient(135deg,#eef2ff_0%,#dde4ff_100%)]"
                     @click="showSidebar = true"
                   />
                 </div>
@@ -414,14 +435,14 @@
               </div>
 
               <div>
-                <div class="chart-aspects-header mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-[#4a5577]">
                   <label class="m-0 block text-sm font-medium text-gray-700">Enabled Aspects</label>
                   <div class="chart-aspects-actions flex items-center gap-2">
                     <Button
                       label="All"
                       text
                       size="small"
-                      class="chart-aspects-preset"
+                      class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
                       :disabled="savingPreferences || loadingPreferences"
                       @click="applyDraftAspectPreset('all')"
                     />
@@ -429,7 +450,7 @@
                       label="Major"
                       text
                       size="small"
-                      class="chart-aspects-preset"
+                      class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
                       :disabled="savingPreferences || loadingPreferences"
                       @click="applyDraftAspectPreset('major')"
                     />
@@ -437,20 +458,21 @@
                       label="None"
                       text
                       size="small"
-                      class="chart-aspects-preset"
+                      class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
                       :disabled="savingPreferences || loadingPreferences"
                       @click="applyDraftAspectPreset('none')"
                     />
                   </div>
                 </div>
-                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div class="grid max-h-[min(30vh,13rem)] grid-cols-1 gap-2 overflow-y-auto pr-0.5 sm:grid-cols-2">
                   <button
                     v-for="aspect in preferencesOptions.aspects"
                     :key="aspect.key"
                     type="button"
                     :class="[
-                      'chart-aspect-chip',
-                      preferencesDraft.aspects_enabled[aspect.key] && 'chart-aspect-chip-active',
+                      'flex min-h-[2.35rem] items-center justify-between gap-2 rounded-[0.7rem] border border-[#d4daef] bg-[rgba(255,255,255,0.76)] px-3 py-2 text-left text-[#425072] hover:border-[#bfc9ec] hover:bg-[rgba(241,245,255,0.82)] disabled:cursor-not-allowed disabled:opacity-65',
+                      preferencesDraft.aspects_enabled[aspect.key] &&
+                        'border-[#98a6df] bg-[linear-gradient(140deg,rgba(230,236,255,0.9)_0%,rgba(245,248,255,0.95)_100%)] shadow-[inset_0_0_0_1px_rgba(143,156,212,0.4)]',
                     ]"
                     :aria-pressed="!!preferencesDraft.aspects_enabled[aspect.key]"
                     :disabled="savingPreferences || loadingPreferences"
@@ -459,8 +481,11 @@
                         !preferencesDraft.aspects_enabled[aspect.key]
                     "
                   >
-                    <span class="chart-aspect-chip-label">{{ aspect.label }}</span>
-                    <span class="chart-aspect-chip-orb">orb {{ aspect.default_orb }}</span>
+                    <span class="text-sm font-medium">{{ aspect.label }}</span>
+                    <span
+                      class="rounded-full bg-[rgba(232,237,255,0.8)] px-2 py-0.5 text-xs whitespace-nowrap text-[#7a85ab]"
+                      >orb {{ aspect.default_orb }}</span
+                    >
                   </button>
                 </div>
               </div>
