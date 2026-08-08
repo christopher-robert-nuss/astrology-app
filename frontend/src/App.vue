@@ -183,17 +183,17 @@
             </Drawer>
 
             <!-- Right Side: Chart Display -->
-            <div class="relative z-0 min-w-0 h-full min-h-0 w-full overflow-hidden bg-white">
+            <div class="chart-stage relative z-0 min-w-0 h-full min-h-0 w-full overflow-hidden">
               <Button
                 label="Birth Data"
                 icon="pi pi-bars"
-                class="absolute left-6 top-6 lg:left-8 lg:top-8"
+                class="chart-trigger absolute left-6 top-6 lg:left-8 lg:top-8"
                 severity="secondary"
                 @click="showSidebar = true"
                 :pt="{ root: { class: 'rounded-none!' } }"
                 :ptOptions="{ mergeProps: true }"
               />
-              <div class="bg-white h-full min-h-0 overflow-auto">
+              <div class="chart-stage-surface h-full min-h-0 overflow-auto">
                 <div v-if="svgUrl" class="h-full min-h-0 flex flex-col p-6 lg:p-8">
                   <div class="flex-1 min-h-0 flex justify-center items-center">
                     <div
@@ -268,9 +268,17 @@
 
                 <div
                   v-else
-                  class="h-full min-h-0 flex items-center justify-center text-center text-gray-400 p-6 lg:p-8"
+                  class="chart-empty-state h-full min-h-0 flex flex-col items-center justify-center text-center p-6 lg:p-8"
                 >
-                  <p class="text-xl">Your birth chart will appear here</p>
+                  <div class="chart-empty-hero" aria-hidden="true">
+                    <div class="chart-empty-orbit"></div>
+                    <div class="chart-empty-axis"></div>
+                  </div>
+                  <p class="chart-empty-kicker">Natal chart workspace</p>
+                  <p class="chart-empty-title">Your birth chart will appear here</p>
+                  <p class="chart-empty-copy">
+                    Open Birth Data, enter birth time and location, then generate your chart.
+                  </p>
                 </div>
               </div>
               <!-- Progress overlay when the drawer is closed -->
