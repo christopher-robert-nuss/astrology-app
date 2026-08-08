@@ -185,13 +185,11 @@
             <!-- Right Side: Chart Display -->
             <div class="chart-stage relative z-0 min-w-0 h-full min-h-0 w-full overflow-hidden">
               <Button
-                label="Birth Data"
+                :label="svgUrl ? 'Edit Birth Data' : 'Birth Data'"
                 icon="pi pi-bars"
-                class="chart-trigger absolute left-6 top-6 lg:left-8 lg:top-8"
+                class="chart-trigger absolute left-0 top-6 lg:top-8"
                 severity="secondary"
                 @click="showSidebar = true"
-                :pt="{ root: { class: 'rounded-none!' } }"
-                :ptOptions="{ mergeProps: true }"
               />
               <div class="chart-stage-surface h-full min-h-0 overflow-auto">
                 <div v-if="svgUrl" class="h-full min-h-0 flex flex-col p-6 lg:p-8">
