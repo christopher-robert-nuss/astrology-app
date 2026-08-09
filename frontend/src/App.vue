@@ -893,9 +893,6 @@ const generateChart = async ({ notifySuccess = true } = {}) => {
       svgUrl.value = svgPath ? `${svgPath}${joiner}t=${Date.now()}` : svgPath
     }
 
-    if (notifySuccess) {
-      toast.add({ severity: 'success', summary: 'Chart Generated', life: 3000 })
-    }
   } catch (e) {
     console.error('Chart generation error:', e)
     const isEpheError = (e.message || '').toLowerCase().includes('ephemeris')
