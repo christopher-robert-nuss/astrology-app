@@ -2,7 +2,6 @@
   <Menubar
     :model="items"
     breakpoint="100px"
-    class="app-menubar"
     :pt="pt"
     :ptOptions="{ mergeProps: true }"
   />
@@ -14,55 +13,55 @@ import Menubar from 'primevue/menubar'
 
 const pt = {
   root: {
-    class: 'app-menubar-root m-0 p-0 border-none bg-transparent shadow-none rounded-none w-full',
+    class:
+      'm-0 w-full rounded-none border-x-0 border-t-0 border-b border-[rgba(168,176,214,0.45)] bg-[rgba(247,249,255,0.72)] p-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-[8px]',
   },
   rootList: {
-    class: 'app-menubar-root-list m-0 p-0 flex list-none bg-transparent w-full',
+    class: 'm-0 flex w-full list-none bg-transparent p-0',
   },
 
   item: ({ context }) => ({
     class: [
-      'app-menubar-item m-0 p-0 transition-colors duration-150',
+      'relative m-0 p-0 transition-colors duration-150',
       context.focused && 'outline-none',
     ],
   }),
 
   itemContent: ({ context }) => ({
     class: [
-      'app-menubar-item-content flex items-center gap-x-2 w-full cursor-pointer',
-      context.active && 'app-menubar-item-content-active',
+      'flex w-full cursor-pointer items-center gap-x-2 rounded-none bg-transparent',
+      context.active && context.level === 0 && 'shadow-[inset_0_-2px_0_#8a95d4]',
+      context.level > 0 && 'hover:bg-[rgba(225,231,255,0.42)]',
     ],
   }),
 
   itemLink: ({ context }) => ({
     class: [
-      'app-menubar-item-link flex-1 flex items-center gap-x-2 no-underline rounded-none!',
-      context.active && 'app-menubar-item-link-active',
+      'flex flex-1 items-center gap-x-2 rounded-none! no-underline transition-colors',
+      context.level === 0 &&
+        'px-[1.1rem] py-[0.42rem] text-[0.73rem] font-semibold uppercase tracking-[0.09em] text-[#4a5577] hover:text-[#2f3a5a]',
+      context.level > 0 &&
+        'px-[0.86rem] py-[0.52rem] text-[0.84rem] font-medium normal-case tracking-normal text-[#455170]',
+      (context.active || context.focused) && 'text-[#2f3a5a]',
     ],
   }),
 
-  itemIcon: ({ context }) => ({
-    class: [
-      'app-menubar-item-icon text-sm',
-      context.active && 'app-menubar-item-icon-active',
-    ],
-  }),
+  itemIcon: {
+    class: 'text-sm',
+  },
 
-  itemLabel: ({ context }) => ({
-    class: [
-      'app-menubar-item-label whitespace-nowrap',
-      context.active && 'app-menubar-item-label-active',
-    ],
-  }),
+  itemLabel: {
+    class: 'whitespace-nowrap',
+  },
 
   submenu: {
-    class: 'app-menubar-submenu border shadow-xl rounded-md py-1 min-w-[210px]',
+    class: 'min-w-[210px] rounded-md border border-[#d3d8ef] bg-[rgba(252,253,255,0.98)] py-1 shadow-xl',
   },
 
   submenuIcon: ({ context }) => ({
     class: [
-      'ml-auto text-sm transition-transform app-menubar-submenu-icon',
-      context.active && 'rotate-180 app-menubar-submenu-icon-active',
+      'ml-auto text-sm transition-transform',
+      context.active && 'rotate-180',
     ],
   }),
 
