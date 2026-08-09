@@ -51,6 +51,7 @@ This repo contains:
 - Follow existing Vue component and state patterns.
 - Prefer small reusable UI components over ad hoc one-offs.
 - Keep API calls consistent with the backend contract.
+- Use passthrough styling over css for primevue components
 
 ## Planning / Spec-ing
 
