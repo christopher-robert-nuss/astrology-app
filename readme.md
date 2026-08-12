@@ -19,7 +19,7 @@ This app lets users enter birth details and generate a chart with:
 - Dynamic chart generation powered by Kerykeion
 - SVG chart rendering and static chart output
 - Modern frontend experience with PrimeVue and Tailwind CSS
-- Debian based desktop app packaging support with Electron
+- Desktop packaging with Electron (Linux `.deb` and Windows NSIS)
 
 ## Tech Stack
 
@@ -95,6 +95,41 @@ From the frontend directory:
 ```bash
 npm run electron:dev
 ```
+
+### 5. Build desktop installers
+
+Desktop builds freeze the FastAPI backend with PyInstaller, then package it into
+the Electron app. **Build on the same OS as the installer target** — PyInstaller
+does not cross-compile (a Windows `.exe` backend must be produced on Windows).
+
+Install packaging dependencies once:
+
+```bash
+pip install -r backend/requirements-dev.txt
+cd frontend
+npm install
+```
+
+**Linux (Debian package):**
+
+```bash
+cd frontend
+npm run electron:build
+```
+
+Output: `frontend/dist/simple-astrology-app_*.deb`
+
+**Windows (NSIS installer):**
+
+```bash
+cd frontend
+npm run electron:build:win
+```
+
+Output: `frontend/dist/Simple Astrology App Setup *.exe`
+
+Both commands run `backend/build_backend.py` before `electron-builder`, and
+expect the frozen backend binary under `backend/dist/`.
 
 ## Development Notes
 

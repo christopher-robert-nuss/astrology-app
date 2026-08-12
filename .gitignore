@@ -3,7 +3,6 @@
 astrology-app.code-workspace
 /backend/birth_charts.db
 /backend/build
-/backend/astrology-backend.spec
 /backend/start-backend.sh
 /frontend/dist*
 

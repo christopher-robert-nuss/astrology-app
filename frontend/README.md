@@ -37,6 +37,28 @@ npm run dev
 npm run build
 ```
 
+### Build desktop installers
+
+Freeze the backend with PyInstaller, then package with Electron. Build on the
+**same OS** as the target installer (PyInstaller does not cross-compile).
+
+```sh
+cd ..
+pip install -r backend/requirements-dev.txt
+cd frontend
+npm install
+
+# Linux .deb
+npm run electron:build
+
+# Windows NSIS installer (run on Windows)
+npm run electron:build:win
+```
+
+Both scripts call `npm run build:backend` (`../backend/build_backend.py`) and
+expect the frozen binary in `../backend/dist/` (`astrology-backend` or
+`astrology-backend.exe`).
+
 ### Electron visual regression with Playwright
 
 ```sh

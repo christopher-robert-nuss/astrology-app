@@ -15,8 +15,12 @@
     "productName": "Simple Astrology App",
     "extraResources": [
       {
-        "from": "../backend/dist/astrology-backend",
-        "to": "backend/astrology-backend"
+        "from": "../backend/dist",
+        "to": "backend",
+        "filter": [
+          "astrology-backend",
+          "astrology-backend.exe"
+        ]
       }
     ],
     "linux": {
@@ -35,6 +39,15 @@
         "--enable-features=WebContentsFocusOnResize"
       ],
       "syncDesktopName": true
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   },
   "scripts": {
@@ -44,7 +57,9 @@
     "preview": "vite preview",
     "format": "prettier --write --experimental-cli src/",
     "electron:dev": "vite",
-    "electron:build": "cross-env NODE_ENV=production vite build && electron-builder --linux deb",
+    "build:backend": "python ../backend/build_backend.py",
+    "electron:build": "vite build && npm run build:backend && electron-builder --linux deb",
+    "electron:build:win": "vite build && npm run build:backend && electron-builder --win nsis",
     "test": "vitest",
     "test:run": "vitest run",
     "pw:electron": "playwright test -c playwright.electron.config.js",
@@ -83,5 +98,9 @@
   },
   "engines": {
     "node": "^22.18.0 || >=24.12.0"
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.28.1": true
   }
 }
