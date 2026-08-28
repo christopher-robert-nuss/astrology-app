@@ -20,7 +20,11 @@ KERYKEION_DIR = _package_dir(kerykeion)
 a = Analysis(
     ["run_backend.py"],
     pathex=[],
-    binaries=[],
+    binaries=[
+        (r'C:\Windows\System32\msvcp140.dll', '.'),
+        (r'C:\Windows\System32\vcruntime140.dll', '.'),
+        (r'C:\Windows\System32\vcruntime140_1.dll', '.'),
+    ],
     datas=[
         (
             str(KERYKEION_DIR / "charts" / "themes"),
