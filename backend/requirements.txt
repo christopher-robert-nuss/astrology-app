@@ -4,3 +4,4 @@ pydantic
 kerykeion
 appdirs
 
+certifi

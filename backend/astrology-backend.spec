@@ -8,6 +8,7 @@ Ephemeris files are resolved at runtime and are intentionally not bundled.
 
 from pathlib import Path
 
+import certifi
 import kerykeion
 
 
@@ -34,6 +35,7 @@ a = Analysis(
             str(KERYKEION_DIR / "charts" / "templates"),
             "kerykeion/charts/templates",
         ),
+        (certifi.where(), "certifi"),
     ],
     hiddenimports=["kerykeion", "swisseph"],
     hookspath=[],

@@ -7,6 +7,7 @@ downloaded on demand into the user's data directory.
 
 import os
 import re
+import ssl
 import shutil
 import sys
 import json
@@ -17,6 +18,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, List, Optional
 
+import certifi
 import swisseph as swe
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -229,10 +231,15 @@ def _download_ephe_file(filename: str, dest_dir: Path) -> None:
         headers={"User-Agent": "simple-astrology-app/0.0.1"},
     )
     last_error = None
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
 
     for attempt in range(1, 4):
         try:
-            with urllib.request.urlopen(request, timeout=30) as response:
+            with urllib.request.urlopen(
+                request,
+                timeout=30,
+                context=ssl_context,
+            ) as response:
                 data = response.read()
             if len(data) < 10_000:
                 raise RuntimeError(
