@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+import backend.main as backend_main
 from backend.main import app
 
 
@@ -78,3 +79,15 @@ def test_chart_endpoint_returns_chart_metadata(client):
     assert data["svg_path"].startswith("/charts_output/")
     assert "planets" in data
     assert "houses" in data
+
+
+def test_ephemeris_ensure_exposes_download_error(client, monkeypatch):
+    def fail_download(*args, **kwargs):
+        raise RuntimeError("network unavailable")
+
+    monkeypatch.setattr(backend_main, "ensure_ephemeris_for_year", fail_download)
+
+    response = client.post("/ephemeris/ensure?year=1972")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "network unavailable"

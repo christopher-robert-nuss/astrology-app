@@ -12,6 +12,7 @@ const useMockBackend = process.env.PLAYWRIGHT_ELECTRON_MOCK === '1'
 let mainWindow
 let backendProcess = null
 let backendPort = 8080
+let backendStartupPromise = null
 
 function getMockApiResponse(method, endpoint) {
   if (method === 'GET' && endpoint === '/preferences/options') {
@@ -170,50 +171,63 @@ function createWindow() {
 
 // Start FastAPI backend
 async function startBackend() {
-  if (backendProcess) return
   if (useMockBackend) return
+  if (backendStartupPromise) return backendStartupPromise
+  if (backendProcess) return
 
-  const launch = getBackendLaunchConfig()
-  backendPort = await findAvailablePort(8080)
+  backendStartupPromise = (async () => {
+    const launch = getBackendLaunchConfig()
+    backendPort = await findAvailablePort(8080)
 
-  await new Promise((resolve, reject) => {
-    backendProcess = spawn(launch.command, launch.args, {
-      cwd: launch.cwd,
-      env: {
-        ...process.env,
-        PORT: String(backendPort),
-        ASTROLOGY_APP_DATA_DIR: app.getPath('userData'),
-        ASTROLOGY_APP_PREFERENCES_PATH: path.join(app.getPath('userData'), 'preferences.json'),
-      },
-    })
-
-    let settled = false
-
-    backendProcess.once('error', (error) => {
-      backendProcess = null
-      if (!settled) reject(error)
-    })
-
-    backendProcess.once('close', (code) => {
-      if (!settled) {
-        reject(new Error(`Backend exited before startup completed (code ${code})`))
-      }
-      console.log(`[Backend] Exited with code ${code}`)
-      backendProcess = null
-    })
-
-    backendProcess.stdout.on('data', (data) => console.log(`[Backend] ${data}`))
-    backendProcess.stderr.on('data', (data) => console.error(`[Backend] ${data}`))
-
-    waitForBackendReady(backendPort)
-      .then(() => {
-        settled = true
-        resolve()
+    await new Promise((resolve, reject) => {
+      backendProcess = spawn(launch.command, launch.args, {
+        cwd: launch.cwd,
+        env: {
+          ...process.env,
+          PORT: String(backendPort),
+          ASTROLOGY_APP_DATA_DIR: app.getPath('userData'),
+          ASTROLOGY_APP_PREFERENCES_PATH: path.join(app.getPath('userData'), 'preferences.json'),
+        },
       })
-      .catch((error) => {
+
+      let settled = false
+
+      backendProcess.once('error', (error) => {
+        backendProcess = null
         if (!settled) reject(error)
       })
-  })
+
+      backendProcess.once('close', (code) => {
+        if (!settled) {
+          reject(new Error(`Backend exited before startup completed (code ${code})`))
+        }
+        console.log(`[Backend] Exited with code ${code}`)
+        backendProcess = null
+      })
+
+      backendProcess.stdout.on('data', (data) => console.log(`[Backend] ${data}`))
+      backendProcess.stderr.on('data', (data) => console.error(`[Backend] ${data}`))
+
+      waitForBackendReady(backendPort)
+        .then(() => {
+          settled = true
+          resolve()
+        })
+        .catch((error) => {
+          if (!settled) {
+            backendProcess?.kill()
+            backendProcess = null
+            reject(error)
+          }
+        })
+    })
+  })()
+
+  try {
+    await backendStartupPromise
+  } finally {
+    backendStartupPromise = null
+  }
 }
 
 // IPC Handlers
@@ -235,6 +249,7 @@ ipcMain.handle('api-request', async (event, { method, endpoint, body }) => {
     return getMockApiResponse(method, endpoint)
   }
 
+  await startBackend()
   const baseUrl = `http://127.0.0.1:${backendPort}`
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {
@@ -242,8 +257,20 @@ ipcMain.handle('api-request', async (event, { method, endpoint, body }) => {
       headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
     })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    return await response.json()
+    const responseText = await response.text()
+    let responseBody = null
+    try {
+      responseBody = responseText ? JSON.parse(responseText) : null
+    } catch {
+      responseBody = null
+    }
+
+    if (!response.ok) {
+      const detail = responseBody?.detail || responseText || `HTTP ${response.status}`
+      throw new Error(`HTTP ${response.status}: ${detail}`)
+    }
+
+    return responseBody
   } catch (error) {
     console.error('API Error:', error)
     throw error

@@ -11,6 +11,8 @@ import shutil
 import sys
 import json
 import threading
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any, List, Optional
@@ -222,20 +224,39 @@ def _download_ephe_file(filename: str, dest_dir: Path) -> None:
 
     dest_dir.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".tmp")
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "simple-astrology-app/0.0.1"},
+    )
+    last_error = None
 
-    try:
-        with urllib.request.urlopen(url, timeout=30) as response:
-            data = response.read()
-        if len(data) < 10_000:
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                data = response.read()
+            if len(data) < 10_000:
+                raise RuntimeError(
+                    f"Downloaded {filename} is too small ({len(data)} bytes)"
+                )
+            tmp.write_bytes(data)
+            tmp.replace(dest)
+            print(f"[Ephemeris] Saved {filename} ({len(data):,} bytes)")
+            return
+        except urllib.error.HTTPError as error:
+            tmp.unlink(missing_ok=True)
             raise RuntimeError(
-                f"Downloaded {filename} is too small ({len(data)} bytes)"
-            )
-        tmp.write_bytes(data)
-        tmp.replace(dest)
-        print(f"[Ephemeris] Saved {filename} ({len(data):,} bytes)")
-    except Exception as e:
-        tmp.unlink(missing_ok=True)
-        raise RuntimeError(f"Failed to download {filename}: {e}") from e
+                f"Ephemeris server returned HTTP {error.code} for {url}"
+            ) from error
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            last_error = error
+            tmp.unlink(missing_ok=True)
+            if attempt < 3:
+                print(f"[Ephemeris] Download attempt {attempt} failed; retrying …")
+                time.sleep(attempt)
+
+    raise RuntimeError(
+        f"Failed to download {filename} from {url} after 3 attempts: {last_error}"
+    ) from last_error
 
 
 def ensure_ephemeris_for_year(year: int, include_asteroids: bool = False) -> Path:
