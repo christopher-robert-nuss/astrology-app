@@ -13,6 +13,8 @@ let mainWindow
 let backendProcess = null
 let backendPort = 8080
 let backendStartupPromise = null
+let backendShutdownPromise = null
+let isQuitting = false
 
 function getMockApiResponse(method, endpoint) {
   if (method === 'GET' && endpoint === '/preferences/options') {
@@ -172,12 +174,14 @@ function createWindow() {
 // Start FastAPI backend
 async function startBackend() {
   if (useMockBackend) return
+  if (isQuitting) throw new Error('Cannot start backend while the app is quitting')
   if (backendStartupPromise) return backendStartupPromise
   if (backendProcess) return
 
   backendStartupPromise = (async () => {
     const launch = getBackendLaunchConfig()
     backendPort = await findAvailablePort(8080)
+    if (isQuitting) throw new Error('Backend startup cancelled because the app is quitting')
 
     await new Promise((resolve, reject) => {
       backendProcess = spawn(launch.command, launch.args, {
@@ -230,6 +234,57 @@ async function startBackend() {
   }
 }
 
+function waitForProcessExit(processToStop) {
+  if (processToStop.exitCode !== null || processToStop.signalCode !== null) {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => {
+    processToStop.once('close', resolve)
+  })
+}
+
+async function stopBackend() {
+  if (backendShutdownPromise) return backendShutdownPromise
+
+  backendShutdownPromise = (async () => {
+    if (!backendProcess && backendStartupPromise) {
+      await backendStartupPromise.catch(() => {})
+    }
+
+    const processToStop = backendProcess
+    backendProcess = null
+    if (!processToStop) return
+
+    const processExit = waitForProcessExit(processToStop)
+    if (process.platform === 'win32' && processToStop.pid) {
+      await new Promise((resolve, reject) => {
+        const taskkill = spawn('taskkill', ['/pid', String(processToStop.pid), '/T', '/F'], {
+          windowsHide: true,
+        })
+        taskkill.once('error', reject)
+        taskkill.once('close', (code) => {
+          if (code === 0 || code === 128) {
+            resolve()
+          } else {
+            reject(new Error(`taskkill exited with code ${code}`))
+          }
+        })
+      })
+    } else {
+      processToStop.kill()
+    }
+
+    await processExit
+  })()
+
+  try {
+    await backendShutdownPromise
+  } finally {
+    backendShutdownPromise = null
+  }
+}
+
 // IPC Handlers
 ipcMain.handle('start-backend', async () => {
   await startBackend()
@@ -237,11 +292,7 @@ ipcMain.handle('start-backend', async () => {
 })
 
 ipcMain.handle('stop-backend', () => {
-  if (backendProcess) {
-    backendProcess.kill()
-    backendProcess = null
-  }
-  return { success: true }
+  return stopBackend().then(() => ({ success: true }))
 })
 
 ipcMain.handle('api-request', async (event, { method, endpoint, body }) => {
@@ -278,7 +329,6 @@ ipcMain.handle('api-request', async (event, { method, endpoint, body }) => {
 })
 
 ipcMain.on('app-quit', () => {
-  if (backendProcess) backendProcess.kill()
   app.quit()
 })
 
@@ -481,7 +531,20 @@ app.whenReady().then(async () => {
   })
 })
 
+app.on('before-quit', (event) => {
+  if (isQuitting) return
+
+  isQuitting = true
+  event.preventDefault()
+  stopBackend()
+    .catch((error) => {
+      console.error('[Backend] Failed to stop:', error)
+    })
+    .finally(() => {
+      app.quit()
+    })
+})
+
 app.on('window-all-closed', () => {
-  if (backendProcess) backendProcess.kill()
   if (process.platform !== 'darwin') app.quit()
 })
