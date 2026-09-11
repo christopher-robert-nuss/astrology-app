@@ -46,6 +46,16 @@ def test_ephemeris_status_endpoint_is_available(client):
     assert isinstance(data["files"], list)
 
 
+def test_timezone_endpoint_resolves_iana_zone_from_coordinates(client):
+    london = client.get("/timezone", params={"lat": 51.5074, "lng": -0.1278})
+    assert london.status_code == 200
+    assert london.json()["tz_str"] == "Europe/London"
+
+    village = client.get("/timezone", params={"lat": 48.05, "lng": 11.55})
+    assert village.status_code == 200
+    assert village.json()["tz_str"] == "Europe/Berlin"
+
+
 def test_chart_endpoint_returns_chart_metadata(client):
     payload = {
         "data": {
@@ -57,7 +67,7 @@ def test_chart_endpoint_returns_chart_metadata(client):
             "minute": 0,
             "lat": 51.5074,
             "lng": -0.1278,
-            "tz_str": "UTC",
+            "tz_str": "",
             "city": "London",
             "nation": "UK",
             "zodiac_type": "Tropical",
@@ -75,10 +85,44 @@ def test_chart_endpoint_returns_chart_metadata(client):
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Ada Lovelace"
+    assert data["location"]["tz"] == "Europe/London"
     assert data["location"]["city"] if "city" in data["location"] else True
     assert data["svg_path"].startswith("/charts_output/")
+    assert data["print_svg_path"].startswith("/charts_output/")
+    assert data["print_svg_path"].endswith("-print.svg")
     assert "planets" in data
     assert "houses" in data
+    assert isinstance(data["aspects"], list)
+    if data["aspects"]:
+        assert "p1" in data["aspects"][0]
+        assert "aspect" in data["aspects"][0]
+
+
+def test_editorial_svg_palette_uses_readable_structure_colors():
+    sample = """
+    :root {
+      --kerykeion-color-base-100: #0f172a;
+      --kerykeion-color-primary: #38bdf8;
+      --kerykeion-color-primary-content: #000000;
+      --kerykeion-modern-stroke: #384a6b;
+      --kerykeion-modern-indicator: #4e607d;
+      --kerykeion-chart-color-houses-radix-line: var(--kerykeion-color-base-content);
+    }
+    <rect fill="#ffffff"/>
+    <circle stroke="#6f5a3b"/>
+    """
+
+    rewritten = backend_main._apply_editorial_svg_palette(sample)
+
+    assert "--kerykeion-color-base-100: #222625" in rewritten
+    assert "--kerykeion-color-primary: #c9a467" in rewritten
+    assert "--kerykeion-modern-stroke: #c9a467" in rewritten
+    assert "--kerykeion-modern-indicator: #b08a4a" in rewritten
+    assert "--kerykeion-chart-color-houses-radix-line: #b08a4a" in rewritten
+    assert "--kerykeion-color-primary-content: #c9a467" not in rewritten
+    assert 'fill="#222625"' in rewritten
+    assert "#6f5a3b" not in rewritten
+    assert "#38bdf8" not in rewritten
 
 
 def test_ephemeris_ensure_exposes_download_error(client, monkeypatch):

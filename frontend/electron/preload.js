@@ -11,8 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   apiRequest: (options) => ipcRenderer.invoke('api-request', options),
 
   // File operations
-  saveChartFile: (data, suggestedName) =>
-    ipcRenderer.invoke('save-chart-file', data, suggestedName),
+  saveChartFile: (data, suggestedName, existingPath) =>
+    ipcRenderer.invoke('save-chart-file', data, suggestedName, existingPath),
   openChartFile: () => ipcRenderer.invoke('open-chart-file'),
   openRecentFile: (filePath) => ipcRenderer.invoke('open-recent-file', filePath),
   getRecentFiles: () => ipcRenderer.invoke('get-recent-files'),

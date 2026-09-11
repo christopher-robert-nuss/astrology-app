@@ -17,6 +17,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any, List, Optional
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 import certifi
 import swisseph as swe
@@ -29,6 +30,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from kerykeion import AstrologicalSubjectFactory, ChartDataFactory
 from kerykeion.charts.chart_drawer import ChartDrawer
 from kerykeion.settings.config_constants import DEFAULT_ACTIVE_ASPECTS
+from timezonefinder import TimezoneFinder
 
 # ---------------------------------------------------------------------------
 # Application & constants
@@ -316,6 +318,51 @@ app.add_middleware(
 )
 
 
+_timezone_finder: Optional[TimezoneFinder] = None
+_IANA_TIMEZONES = available_timezones()
+
+
+def _get_timezone_finder() -> TimezoneFinder:
+    global _timezone_finder
+    if _timezone_finder is None:
+        _timezone_finder = TimezoneFinder()
+    return _timezone_finder
+
+
+def _timezone_from_coordinates(lat: float, lng: float) -> str:
+    found = _get_timezone_finder().timezone_at(lat=lat, lng=lng)
+    return found or "UTC"
+
+
+def _is_valid_iana_timezone(name: str) -> bool:
+    if name == "UTC":
+        return True
+    if name not in _IANA_TIMEZONES:
+        return False
+    try:
+        ZoneInfo(name)
+        return True
+    except ZoneInfoNotFoundError:
+        return False
+
+
+def resolve_timezone(lat: float, lng: float, tz_str: Optional[str] = None) -> str:
+    """Prefer an explicit IANA zone; otherwise derive it from coordinates."""
+    requested = (tz_str or "").strip()
+    if requested and requested.lower() != "auto":
+        if not _is_valid_iana_timezone(requested):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Unknown timezone '{requested}'. "
+                    "Use an IANA name such as Europe/Berlin, or leave it blank to "
+                    "resolve from latitude and longitude."
+                ),
+            )
+        return requested
+    return _timezone_from_coordinates(lat, lng)
+
+
 # ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
@@ -332,7 +379,7 @@ class BirthData(BaseModel):
     minute: Optional[int] = None
     lat: Optional[float] = None
     lng: Optional[float] = None
-    tz_str: str
+    tz_str: Optional[str] = None
     city: Optional[str] = None
     nation: Optional[str] = None
     zodiac_type: str = "Tropical"
@@ -480,9 +527,172 @@ def _strip_aspect_matrix_from_svg(svg_markup: str) -> str:
     return cleaned
 
 
+# Editorial chart tokens. Rings and glyphs must keep ≥3:1 (UI) / ≥4.5:1 (text)
+# against paper (#222625). Do not use #6f5a3b for structure — it fails both.
+_EDITORIAL_CHART_CSS_VARS = {
+    "--kerykeion-color-black": "#17191a",
+    "--kerykeion-color-white": "#f4eee4",
+    "--kerykeion-color-neutral-content": "#bdb4a7",
+    "--kerykeion-color-base-content": "#f4eee4",
+    "--kerykeion-color-primary": "#c9a467",
+    "--kerykeion-color-secondary": "#bdb4a7",
+    "--kerykeion-color-accent": "#9aa390",
+    "--kerykeion-color-neutral": "#5c625e",
+    "--kerykeion-color-base-100": "#222625",
+    "--kerykeion-color-base-200": "#17191a",
+    "--kerykeion-color-base-300": "#2b302d",
+    "--kerykeion-color-info": "#9aa390",
+    "--kerykeion-color-info-content": "#17191a",
+    "--kerykeion-color-success": "#9aa390",
+    "--kerykeion-color-warning": "#e0be7b",
+    "--kerykeion-color-error": "#d08968",
+    "--kerykeion-modern-planet-ring": "#17191a",
+    "--kerykeion-modern-planet-ring-outer": "#17191a",
+    "--kerykeion-modern-house-ring": "#2b302d",
+    "--kerykeion-modern-stroke": "#c9a467",
+    "--kerykeion-modern-retrograde": "#d08968",
+    "--kerykeion-modern-indicator": "#b08a4a",
+    "--kerykeion-chart-color-paper-0": "#f4eee4",
+    "--kerykeion-chart-color-paper-1": "#222625",
+    "--kerykeion-chart-color-zodiac-radix-ring-0": "#c9a467",
+    "--kerykeion-chart-color-zodiac-radix-ring-1": "#e0be7b",
+    "--kerykeion-chart-color-zodiac-radix-ring-2": "#b08a4a",
+    "--kerykeion-chart-color-houses-radix-line": "#b08a4a",
+}
+
+_EDITORIAL_CHART_CSS_VARS.update(
+    {
+        f"--kerykeion-modern-zodiac-bg-{index}": (
+            "#17191a" if index % 2 == 0 else "#2b302d"
+        )
+        for index in range(12)
+    }
+)
+_EDITORIAL_CHART_CSS_VARS.update(
+    {
+        f"--kerykeion-chart-color-zodiac-bg-{index}": (
+            "#17191a" if index % 2 == 0 else "#2b302d"
+        )
+        for index in range(12)
+    }
+)
+
+_EDITORIAL_CHART_HEX_FALLBACK = {
+    "#ffffff": "#222625",
+    "#FFFFFF": "#222625",
+    "#000000": "#f4eee4",
+    "#000000ff": "#f4eee4",
+    "#0f172a": "#222625",
+    "#1d1b22": "#222625",
+    "#302b2b": "#17191a",
+    "#6f5a3b": "#b08a4a",
+    "#8f7650": "#e0be7b",
+    "#4f5f99": "#c9a467",
+    "#7f8fc6": "#e0be7b",
+    "#9eabd8": "#b08a4a",
+    "#8d9cd2": "#b08a4a",
+    "#dbe2ff": "#17191a",
+    "#7c8ac1": "#c9a467",
+    "#49547e": "#f4eee4",
+    "#38bdf8": "#c9a467",
+    "#818cf8": "#bdb4a7",
+    "#f471b5": "#9aa390",
+    "#fb7085": "#d08968",
+    "#2dd4bf": "#9aa390",
+    "#f4bf50": "#e0be7b",
+}
+
+
+def _apply_editorial_svg_palette(svg_markup: str) -> str:
+    """Retint a Kerykeion SVG to the app's dark editorial palette."""
+    rewritten = svg_markup
+    for name, value in _EDITORIAL_CHART_CSS_VARS.items():
+        rewritten = re.sub(
+            rf"({re.escape(name)})(?![\w-])(\s*:\s*)[^;]+",
+            rf"\g<1>\g<2>{value}",
+            rewritten,
+            flags=re.IGNORECASE,
+        )
+    hex_fallback = {key.lower(): value for key, value in _EDITORIAL_CHART_HEX_FALLBACK.items()}
+    return re.sub(
+        r"#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?",
+        lambda match: hex_fallback.get(match.group(0).lower(), match.group(0)),
+        rewritten,
+    )
+
+
+def _serialize_aspects(chart_data: Any) -> list[dict[str, Any]]:
+    """Turn Kerykeion aspect models into JSON-safe rows for the UI."""
+    raw = getattr(chart_data, "aspects", None)
+    if raw is None:
+        aspects = []
+    elif hasattr(raw, "aspects"):
+        aspects = raw.aspects or []
+    else:
+        aspects = raw or []
+    rows: list[dict[str, Any]] = []
+    for aspect in aspects:
+        if hasattr(aspect, "model_dump"):
+            data = aspect.model_dump()
+        elif isinstance(aspect, dict):
+            data = aspect
+        else:
+            continue
+        rows.append(
+            {
+                "p1": data.get("p1_name"),
+                "p2": data.get("p2_name"),
+                "aspect": data.get("aspect"),
+                "orbit": data.get("orbit"),
+                "movement": data.get("aspect_movement"),
+            }
+        )
+    return rows
+
+
+def _write_chart_svg(
+    chart_data: Any,
+    output_dir: Path,
+    filename: str,
+    *,
+    theme: str,
+    editorial: bool,
+    strip_matrix: bool,
+) -> Optional[Path]:
+    """Render a natal SVG, optionally retinted for the on-screen palette."""
+    drawer = ChartDrawer(chart_data=chart_data, theme=theme)
+    svg_path = output_dir / f"{filename}.svg"
+    if svg_path.exists():
+        svg_path.unlink()
+    drawer.save_svg(output_path=str(output_dir), filename=filename)
+    if not svg_path.exists():
+        return None
+    markup = svg_path.read_text(encoding="utf-8")
+    if strip_matrix:
+        markup = _strip_aspect_matrix_from_svg(markup)
+    if editorial:
+        markup = _apply_editorial_svg_palette(markup)
+    svg_path.write_text(markup, encoding="utf-8")
+    return svg_path
+
+
 # ---------------------------------------------------------------------------
 # API routes – Preferences
 # ---------------------------------------------------------------------------
+
+
+@app.get("/timezone")
+async def get_timezone(lat: float, lng: float):
+    """Return the IANA timezone for a latitude/longitude pair."""
+    if lat < -90 or lat > 90 or lng < -180 or lng > 180:
+        raise HTTPException(status_code=400, detail="Latitude or longitude is out of range.")
+    tz_str = _timezone_from_coordinates(lat, lng)
+    return {
+        "tz_str": tz_str,
+        "source": "coordinates" if tz_str != "UTC" else "fallback",
+        "lat": lat,
+        "lng": lng,
+    }
 
 
 @app.get("/preferences")
@@ -539,6 +749,8 @@ async def generate_chart(payload: ChartRequest):
         if data.year is None:
             raise ValueError("year is required to select ephemeris files")
 
+        tz_str = resolve_timezone(data.lat, data.lng, data.tz_str)
+
         try:
             ensure_ephemeris_for_year(data.year)
         except Exception as ephe_err:
@@ -556,7 +768,7 @@ async def generate_chart(payload: ChartRequest):
             minute=data.minute,
             lat=data.lat,
             lng=data.lng,
-            tz_str=data.tz_str or "UTC",
+            tz_str=tz_str,
             city=data.city,
             nation=data.nation,
             online=False,
@@ -631,36 +843,49 @@ async def generate_chart(payload: ChartRequest):
                     "abs_pos": getattr(h, "abs_pos", None),
                 }
 
-        chart_drawer = ChartDrawer(chart_data=chart_data)
         filename = f"{data.name.replace(' ', '-')}-chart"
+        print_filename = f"{filename}-print"
         svg_full_path = f"/charts_output/{filename}.svg"
+        print_svg_path: Optional[str] = f"/charts_output/{print_filename}.svg"
+        strip_matrix = not aspect_list
 
         try:
             STATIC_CHART_DIR.mkdir(parents=True, exist_ok=True)
-            svg_path = STATIC_CHART_DIR / f"{filename}.svg"
-
-            if svg_path.exists():
-                svg_path.unlink()
-
-            chart_drawer.save_svg(output_path=str(STATIC_CHART_DIR), filename=filename)
-
-            if not aspect_list and svg_path.exists():
-                svg_markup = svg_path.read_text(encoding="utf-8")
-                svg_path.write_text(
-                    _strip_aspect_matrix_from_svg(svg_markup),
-                    encoding="utf-8",
-                )
-
-            if not svg_path.exists():
+            screen_path = _write_chart_svg(
+                chart_data,
+                STATIC_CHART_DIR,
+                filename,
+                theme="dark-high-contrast",
+                editorial=True,
+                strip_matrix=strip_matrix,
+            )
+            print_path = _write_chart_svg(
+                chart_data,
+                STATIC_CHART_DIR,
+                print_filename,
+                theme="classic",
+                editorial=False,
+                strip_matrix=strip_matrix,
+            )
+            if screen_path is None:
                 raise Exception("SVG file was not created")
+            if print_path is None:
+                print_svg_path = None
         except Exception as svg_err:
             print(f"SVG save failed: {svg_err}")
             svg_full_path = None
+            print_svg_path = None
 
         return {
             "name": subject.name,
             "date": f"{data.year}-{data.month:02d}-{data.day:02d} {data.hour:02d}:{data.minute:02d}",
-            "location": {"lat": data.lat, "lng": data.lng, "tz": data.tz_str},
+            "location": {
+                "lat": data.lat,
+                "lng": data.lng,
+                "tz": tz_str,
+                "city": data.city,
+                "nation": data.nation,
+            },
             "zodiac_type": data2.zodiac_type,
             "houses_system": getattr(
                 subject, "houses_system_name", data2.houses_system
@@ -677,9 +902,10 @@ async def generate_chart(payload: ChartRequest):
                 if hasattr(subject, "tenth_house")
                 else None
             ),
-            "aspects": getattr(chart_data, "aspects", []),
+            "aspects": _serialize_aspects(chart_data),
             "preferences": data2.model_dump(),
-            "svg_path": f"/charts_output/{filename}.svg",
+            "svg_path": svg_full_path,
+            "print_svg_path": print_svg_path,
         }
 
     except Exception as e:

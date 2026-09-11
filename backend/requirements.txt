@@ -3,5 +3,6 @@ fastapi
 pydantic
 kerykeion
 appdirs
+timezonefinder
 
 certifi

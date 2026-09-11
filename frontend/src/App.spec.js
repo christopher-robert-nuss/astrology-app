@@ -2,17 +2,8 @@ import { flushPromises, shallowMount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.vue'
 
-const mockToastAdd = vi.fn()
-
-vi.mock('primevue/usetoast', () => ({
-  useToast: () => ({
-    add: mockToastAdd,
-  }),
-}))
-
 describe('App', () => {
   beforeEach(() => {
-    mockToastAdd.mockReset()
     window.electronAPI = {
       startBackend: vi.fn().mockResolvedValue({ url: 'http://127.0.0.1:8080' }),
       apiRequest: vi.fn(async ({ endpoint }) => {
@@ -53,7 +44,7 @@ describe('App', () => {
     const wrapper = shallowMount(App)
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Your birth chart will appear here')
+    expect(wrapper.text()).toContain('Natal chart workspace')
   })
 
   it('shows the loading overlay while a chart generation is in progress', async () => {

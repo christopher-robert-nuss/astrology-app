@@ -3,30 +3,38 @@
     <AppMenuBar class="relative z-40 m-0! p-0! rounded-none! border-none!" />
 
     <div class="flex-1 min-h-0 overflow-hidden">
-      <Toast position="top-right" />
-      <div class="content h-full min-h-0 bg-gray-50">
+      <div class="content h-full min-h-0 bg-[#121116]">
         <div class="h-full min-h-0 w-full">
           <div class="relative h-full min-h-0 w-full">
-            <Drawer
+            <Dialog
               v-model:visible="showSidebar"
               header="Enter Birth Data"
-              position="left"
-              class="w-full sm:w-md"
+              modal
+              :pt="birthDataDialogPt"
+              :ptOptions="{ mergeProps: true }"
             >
-              <form @submit.prevent="generateChart" class="p-1 flex-1 flex flex-col">
-                <div class="space-y-5 flex-1">
-                  <div class="mb-3 text-gray-700 text-sm">
+              <form @submit.prevent="generateChart" class="@container flex flex-1 flex-col">
+                <div class="flex-1 space-y-4">
+                  <div class="min-w-0">
+                    <label class="astro-field-caption">Name</label>
                     <InputText
                       v-model="formData.name"
                       class="w-full"
                       fluid
                       placeholder="Name"
                       size="small"
+                      :pt="inputTextPt"
+                      :ptOptions="{ mergeProps: true }"
                     />
                   </div>
-                  <p class="text-sm font-semibold m-0 pb-1">Date of Birth</p>
-                  <div class="grid grid-cols-3 gap-3">
-                    <div class="text-gray-700 text-sm">
+                  <p
+                    class="m-0 border-b border-[#4a454e] pb-1 text-xs font-semibold tracking-[0.1em] text-[#c9a467] uppercase"
+                  >
+                    Date of Birth
+                  </p>
+                  <div class="grid grid-cols-1 gap-2 @xs:grid-cols-3">
+                    <div class="min-w-0">
+                      <label class="astro-field-caption">Day</label>
                       <InputNumber
                         v-model="formData.day"
                         :min="1"
@@ -34,9 +42,12 @@
                         fluid
                         placeholder="Day"
                         size="small"
+                        :pt="inputNumberPt"
+                        :ptOptions="{ mergeProps: true }"
                       />
                     </div>
-                    <div class="text-gray-700 text-sm">
+                    <div class="min-w-0">
+                      <label class="astro-field-caption">Month</label>
                       <InputNumber
                         v-model="formData.month"
                         :min="1"
@@ -44,9 +55,12 @@
                         fluid
                         placeholder="Month"
                         size="small"
+                        :pt="inputNumberPt"
+                        :ptOptions="{ mergeProps: true }"
                       />
                     </div>
-                    <div class="text-gray-700 text-sm">
+                    <div class="min-w-0">
+                      <label class="astro-field-caption">Year</label>
                       <InputNumber
                         v-model="formData.year"
                         :format="false"
@@ -54,12 +68,19 @@
                         fluid
                         placeholder="Year"
                         size="small"
+                        :pt="inputNumberPt"
+                        :ptOptions="{ mergeProps: true }"
                       />
                     </div>
                   </div>
-                  <p class="text-sm font-semibold m-0 pb-1">Birth Information</p>
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-1 text-gray-700 text-sm">
+                  <p
+                    class="m-0 border-b border-[#4a454e] pb-1 text-xs font-semibold tracking-[0.1em] text-[#c9a467] uppercase"
+                  >
+                    Birth Information
+                  </p>
+                  <div class="grid grid-cols-1 gap-2 @sm:grid-cols-2">
+                    <div class="min-w-0">
+                      <label class="astro-field-caption">Hour</label>
                       <InputNumber
                         v-model="formData.hour"
                         :min="0"
@@ -67,10 +88,13 @@
                         fluid
                         placeholder="Hour"
                         size="small"
+                        :pt="inputNumberPt"
+                        :ptOptions="{ mergeProps: true }"
                       />
                     </div>
 
-                    <div class="col-span-1 text-gray-700 text-sm">
+                    <div class="min-w-0">
+                      <label class="astro-field-caption">Minute</label>
                       <InputNumber
                         v-model="formData.minute"
                         :min="0"
@@ -78,21 +102,19 @@
                         fluid
                         placeholder="Minute"
                         size="small"
-                      />
-                    </div>
-
-                    <div class="col-span-2 text-gray-700 text-sm">
-                      <InputText
-                        v-model="formData.tz_str"
-                        fluid
-                        placeholder="Timezone"
-                        size="small"
+                        :pt="inputNumberPt"
+                        :ptOptions="{ mergeProps: true }"
                       />
                     </div>
                   </div>
-                  <p class="text-sm font-semibold m-0 pb-1">Location Information</p>
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-1 text-gray-700 text-sm">
+                  <p
+                    class="m-0 border-b border-[#4a454e] pb-1 text-xs font-semibold tracking-[0.1em] text-[#c9a467] uppercase"
+                  >
+                    Location Information
+                  </p>
+                  <div class="grid grid-cols-1 gap-2 @sm:grid-cols-2">
+                    <div class="min-w-0">
+                      <label class="astro-field-caption">Latitude</label>
                       <InputNumber
                         v-model="formData.lat"
                         :format="false"
@@ -102,10 +124,13 @@
                         fluid
                         placeholder="Latitude"
                         size="small"
+                        :pt="inputNumberPt"
+                        :ptOptions="{ mergeProps: true }"
                       />
                     </div>
 
-                    <div class="col-span-1 text-gray-700 text-sm">
+                    <div class="min-w-0">
+                      <label class="astro-field-caption">Longitude</label>
                       <InputNumber
                         v-model="formData.lng"
                         :format="false"
@@ -115,41 +140,78 @@
                         fluid
                         placeholder="Longitude"
                         size="small"
+                        :pt="inputNumberPt"
+                        :ptOptions="{ mergeProps: true }"
                       />
                     </div>
 
-                    <div class="col-span-2 text-gray-700 text-sm">
-                      <InputText v-model="formData.city" fluid placeholder="City" size="small" />
+                    <div class="min-w-0 @sm:col-span-2">
+                      <label class="astro-field-caption">Timezone</label>
+                      <InputText
+                        v-model="formData.tz_str"
+                        class="astro-timezone w-full"
+                        fluid
+                        placeholder="Resolved from coordinates"
+                        size="small"
+                        :pt="inputTextPt"
+                        :ptOptions="{ mergeProps: true }"
+                        @update:model-value="onTimezoneInput"
+                      />
                     </div>
-                    <div class="col-span-2 text-gray-700 text-sm">
+
+                    <div class="min-w-0">
+                      <label class="astro-field-caption">City</label>
+                      <InputText
+                        v-model="formData.city"
+                        class="w-full"
+                        fluid
+                        placeholder="City"
+                        size="small"
+                        :pt="inputTextPt"
+                        :ptOptions="{ mergeProps: true }"
+                      />
+                    </div>
+                    <div class="min-w-0">
+                      <label class="astro-field-caption">Country</label>
                       <InputText
                         v-model="formData.nation"
+                        class="w-full"
                         fluid
                         placeholder="Country"
                         size="small"
+                        :pt="inputTextPt"
+                        :ptOptions="{ mergeProps: true }"
                       />
                     </div>
                   </div>
-                  <p class="text-sm font-semibold m-0 pb-1">House System</p>
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-2 text-gray-700 text-sm">
-                      <InputText
-                        v-model="formData.houses_system"
-                        fluid
-                        placeholder="House System"
-                        size="small"
-                      />
-                    </div>
+                  <p
+                    class="m-0 border-b border-[#4a454e] pb-1 text-xs font-semibold tracking-[0.1em] text-[#c9a467] uppercase"
+                  >
+                    House System
+                  </p>
+                  <div class="min-w-0">
+                    <Select
+                      v-model="formData.houses_system"
+                      :options="houseSystemOptions"
+                      optionLabel="label"
+                      optionValue="code"
+                      class="astro-house-system w-full"
+                      size="small"
+                      placeholder="House System"
+                      :pt="selectPt"
+                      :ptOptions="{ mergeProps: true }"
+                    />
                   </div>
 
-                  <div class="flex gap-3 mt-6 pt-2">
+                  <div class="mt-4 flex gap-2 border-t border-[#4a454e] pt-3">
                     <Button
                       type="submit"
                       label="Generate Chart"
                       :loading="loading"
                       class="w-full"
                       icon="pi pi-chart-line"
-                      :pt="{ label: { class: 'text-xs p-1' } }"
+                      :pt="primaryButtonPt"
+                      :ptOptions="{ mergeProps: true }"
                     />
                     <Button
                       type="button"
@@ -160,27 +222,32 @@
                       icon="pi pi-refresh"
                       @click="resetForm"
                       :disabled="loading"
+                      :pt="secondaryButtonPt"
+                      :ptOptions="{ mergeProps: true }"
                     />
                   </div>
                 </div>
               </form>
               <!-- Loading overlay while ephemeris / chart is in progress -->
               <!-- Progress bar when the drawer is open -->
-              <div v-if="loading && showSidebar" class="mt-5 space-y-2">
-                <p class="text-sm font-medium text-gray-700">
+              <div
+                v-if="loading && showSidebar"
+                class="mt-4 space-y-2 border-t border-[#4a454e] pt-3"
+              >
+                <p class="text-sm font-medium text-[#f2eee5]">
                   {{
                     loadingStage === 'ephemeris'
                       ? 'Downloading ephemeris data…'
                       : 'Generating birth chart…'
                   }}
                 </p>
-                <ProgressBar mode="indeterminate" style="height: 6px" />
-                <p v-if="loadingStage === 'ephemeris'" class="text-xs text-gray-500">
+                <ProgressBar mode="indeterminate" :pt="progressBarPt" style="height: 6px" />
+                <p v-if="loadingStage === 'ephemeris'" class="text-xs text-[#aaa39a]">
                   First use for this century downloads a small data file. It is stored locally for
                   later charts.
                 </p>
               </div>
-            </Drawer>
+            </Dialog>
 
             <!-- Chart Display -->
             <div class="chart-stage relative z-0 h-full min-h-0 min-w-0 w-full overflow-hidden">
@@ -198,7 +265,8 @@
                           label="Edit Birth Data"
                           icon="pi pi-bars"
                           class="chart-shell__birth-data"
-                          severity="secondary"
+                          :pt="primaryButtonPt"
+                          :ptOptions="{ mergeProps: true }"
                           @click="showSidebar = true"
                         />
                       </div>
@@ -207,15 +275,17 @@
                           label="View Full Screen"
                           icon="pi pi-external-link"
                           @click="showFullScreen = true"
-                          severity="secondary"
-                          class="h-10!"
+                          outlined
+                          :pt="outlinedPrimaryButtonPt"
+                          :ptOptions="{ mergeProps: true }"
                         />
                         <Button
                           :label="showMagnifier ? 'Hide Magnifier' : 'Show Magnifier'"
                           icon="pi pi-search-plus"
                           @click="toggleMagnifier"
-                          severity="secondary"
-                          class="h-10!"
+                          outlined
+                          :pt="outlinedPrimaryButtonPt"
+                          :ptOptions="{ mergeProps: true }"
                         />
                       </div>
                     </div>
@@ -226,11 +296,11 @@
                           :src="svgUrl"
                           :key="svgUrl"
                           alt="Birth Chart"
-                          class="print-chart-image block h-auto w-auto max-h-full max-w-full object-contain"
+                          class="block h-auto w-auto max-h-full max-w-full object-contain"
                         />
                         <div
                           v-if="showMagnifier"
-                          class="absolute inset-0 z-10 overflow-hidden rounded-[1.15rem] border border-gray-300 bg-white shadow-lg"
+                          class="absolute inset-0 z-10 overflow-hidden border border-[#c9a467] bg-[#17191a] shadow-lg"
                         >
                           <div class="h-full w-full overflow-auto">
                             <img
@@ -247,7 +317,10 @@
                       </div>
                     </div>
 
-                    <div v-if="preferencesOptions.aspects.length" class="chart-shell__dock">
+                    <div
+                      v-if="preferencesOptions.aspects.length"
+                      class="chart-shell__dock chart-aspects-panel"
+                    >
                       <div class="chart-shell__dock-header">
                         <p class="m-0 text-sm font-semibold">Visible aspects</p>
                         <div class="chart-aspects-actions flex items-center gap-2">
@@ -255,25 +328,34 @@
                             label="All"
                             text
                             size="small"
-                            class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
+                            class="astro-aspect-preset"
+                            :aria-pressed="isAspectPresetActive(preferences.aspects_enabled, 'all')"
                             :disabled="savingPreferences || loadingPreferences || loading"
                             @click="applyChartAspectPreset('all')"
+                            :pt="textButtonPt"
+                            :ptOptions="{ mergeProps: true }"
                           />
                           <Button
                             label="Major"
                             text
                             size="small"
-                            class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
+                            class="astro-aspect-preset"
+                            :aria-pressed="isAspectPresetActive(preferences.aspects_enabled, 'major')"
                             :disabled="savingPreferences || loadingPreferences || loading"
                             @click="applyChartAspectPreset('major')"
+                            :pt="textButtonPt"
+                            :ptOptions="{ mergeProps: true }"
                           />
                           <Button
                             label="None"
                             text
                             size="small"
-                            class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
+                            class="astro-aspect-preset"
+                            :aria-pressed="isAspectPresetActive(preferences.aspects_enabled, 'none')"
                             :disabled="savingPreferences || loadingPreferences || loading"
                             @click="applyChartAspectPreset('none')"
+                            :pt="textButtonPt"
+                            :ptOptions="{ mergeProps: true }"
                           />
                         </div>
                       </div>
@@ -283,19 +365,20 @@
                           :key="`chart-aspect-${aspect.key}`"
                           type="button"
                           :class="[
-                            'flex min-h-[2.35rem] min-w-42 items-center justify-between gap-2 rounded-[0.7rem] border border-[#d4daef] bg-[rgba(255,255,255,0.76)] px-3 py-2 text-left text-[#425072] hover:border-[#bfc9ec] hover:bg-[rgba(241,245,255,0.82)] disabled:cursor-not-allowed disabled:opacity-65',
-                            preferences.aspects_enabled[aspect.key] &&
-                              'border-[#98a6df] bg-[linear-gradient(140deg,rgba(230,236,255,0.9)_0%,rgba(245,248,255,0.95)_100%)] shadow-[inset_0_0_0_1px_rgba(143,156,212,0.4)]',
+                            'astro-aspect-option',
                           ]"
                           :aria-pressed="!!preferences.aspects_enabled[aspect.key]"
                           :disabled="savingPreferences || loadingPreferences || loading"
                           @click="
-                            updateAspectPreference(aspect.key, !preferences.aspects_enabled[aspect.key])
+                            updateAspectPreference(
+                              aspect.key,
+                              !preferences.aspects_enabled[aspect.key],
+                            )
                           "
                         >
                           <span class="text-sm font-medium">{{ aspect.label }}</span>
                           <span
-                            class="rounded-full bg-[rgba(232,237,255,0.8)] px-2 py-0.5 text-xs whitespace-nowrap text-[#7a85ab]"
+                            class="rounded-none bg-[#302b2b] px-2 py-0.5 text-xs whitespace-nowrap text-[#c9a467]"
                             >orb {{ aspect.default_orb }}</span
                           >
                         </button>
@@ -305,7 +388,7 @@
 
                   <div
                     v-else
-                    class="chart-shell__empty flex h-full min-h-0 flex-col items-center justify-center text-center text-[#5f6b84]"
+                    class="chart-shell__empty flex h-full min-h-0 flex-col items-center justify-center text-center text-[#aaa39a]"
                   >
                     <div
                       class="relative mb-5 flex h-44 w-44 items-center justify-center"
@@ -315,23 +398,20 @@
                       <div class="chart-empty-axis"></div>
                     </div>
                     <p
-                      class="mb-2 text-[0.68rem] font-semibold tracking-[0.12em] text-[#7078a3] uppercase"
+                      class="mb-2 text-[0.68rem] font-semibold tracking-[0.16em] text-[#c9a467] uppercase"
                     >
                       Natal chart workspace
                     </p>
-                    <p
-                      class="mb-1 text-[clamp(1.5rem,1.3rem+0.6vw,1.95rem)] leading-[1.2] font-medium text-[#2f3852]"
-                    >
-                      Your birth chart will appear here
-                    </p>
-                    <p class="max-w-md text-[0.94rem] leading-normal text-[#677390]">
+                    <p class="max-w-md text-[0.94rem] leading-normal text-[#aaa39a]">
                       Open Birth Data, enter birth time and location, then generate your chart.
                     </p>
                     <Button
                       label="Open Birth Data"
                       icon="pi pi-arrow-right"
                       iconPos="right"
-                      class="mt-6 rounded-full border border-[#c9cee8] bg-[linear-gradient(135deg,#f7f9ff_0%,#e7ebff_100%)] px-4 text-[#314065] hover:border-[#b7bfe4] hover:bg-[linear-gradient(135deg,#eef2ff_0%,#dde4ff_100%)]"
+                      class="mt-6 rounded-none border border-[#c9a467] bg-[#c9a467] px-4 text-[#121116] hover:border-[#e0be7b] hover:bg-[#e0be7b]"
+                      :pt="primaryButtonPt"
+                      :ptOptions="{ mergeProps: true }"
                       @click="showSidebar = true"
                     />
                   </div>
@@ -340,19 +420,24 @@
               <!-- Progress overlay when the drawer is closed -->
               <div
                 v-if="loading && !showSidebar"
-                class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-white/90 p-6"
+                class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-[#121116]/95 p-6"
               >
-                <p class="text-sm font-medium text-gray-700">
+                <p class="text-sm font-medium text-[#f2eee5]">
                   {{
                     loadingStage === 'ephemeris'
                       ? 'Downloading ephemeris data…'
                       : 'Generating birth chart…'
                   }}
                 </p>
-                <ProgressBar mode="indeterminate" class="w-full max-w-xs" style="height: 6px" />
+                <ProgressBar
+                  mode="indeterminate"
+                  class="w-full max-w-xs"
+                  :pt="progressBarPt"
+                  style="height: 6px"
+                />
                 <p
                   v-if="loadingStage === 'ephemeris'"
-                  class="text-xs text-gray-500 text-center max-w-xs"
+                  class="max-w-xs text-center text-xs text-[#aaa39a]"
                 >
                   First use for this century downloads a small data file. It is stored locally for
                   later charts.
@@ -364,151 +449,320 @@
 
         <div
           v-if="showFullScreen && svgUrl"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-white p-4"
+          class="astro-chart-fullscreen fixed inset-0 z-50 flex items-center justify-center bg-[#17191a] p-4"
         >
-          <div class="absolute right-4 top-4 z-10">
+          <div class="absolute right-4 top-4 z-10 flex items-center gap-2">
+            <Button
+              v-if="hasFullscreenDetails && !showFullscreenDetailsPanel"
+              label="Details"
+              outlined
+              @click="showFullscreenDetailsPanel = true"
+              aria-label="Show chart details"
+              :pt="outlinedPrimaryButtonPt"
+              :ptOptions="{ mergeProps: true }"
+            />
             <Button
               icon="pi pi-times"
-              severity="secondary"
-              rounded
-              text
+              outlined
               @click="showFullScreen = false"
               aria-label="Close full screen chart"
+              :pt="outlinedPrimaryButtonPt"
+              :ptOptions="{ mergeProps: true }"
             />
           </div>
-          <img
-            :src="svgUrl"
-            :key="svgUrl"
-            alt="Birth Chart Full Screen"
-            class="max-h-full max-w-full object-contain"
-          />
-        </div>
-
-        <div
-          v-if="showPreferencesDialog"
-          class="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-4"
-          @click="cancelPreferences"
-        >
-          <div
-            class="w-full max-w-2xl rounded-lg border border-gray-200 bg-white shadow-2xl"
-            @click.stop
-          >
-            <div class="border-b border-gray-200 px-5 py-4">
-              <h2 class="text-lg font-semibold">Edit Preferences</h2>
-              <p class="text-sm text-gray-500">
-                Configure zodiac, house system, and enabled aspects.
-              </p>
-            </div>
-
-            <div class="space-y-5 px-5 py-4" v-if="preferencesDraft">
-              <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Zodiac Type</label>
-                <select
-                  v-model="preferencesDraft.zodiac_type"
-                  class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  :disabled="savingPreferences || loadingPreferences"
+          <div class="astro-chart-fullscreen-stage">
+            <div
+              v-if="fullscreenSvg"
+              class="astro-chart-fullscreen-wheel"
+              aria-label="Birth Chart Full Screen"
+              v-html="fullscreenSvg"
+            />
+            <img
+              v-else
+              :src="svgUrl"
+              :key="svgUrl"
+              alt="Birth Chart Full Screen"
+              class="max-h-full max-w-full object-contain"
+            />
+            <aside
+              v-if="hasFullscreenDetails && showFullscreenDetailsPanel"
+              class="astro-chart-fullscreen-details"
+            >
+              <div class="astro-chart-fullscreen-details-header">
+                <h2>{{ chartData?.name || 'Natal chart' }}</h2>
+                <button
+                  type="button"
+                  class="astro-chart-fullscreen-details-close"
+                  aria-label="Hide chart details"
+                  @click="showFullscreenDetailsPanel = false"
                 >
-                  <option
-                    v-for="zodiac in preferencesOptions.zodiac_types"
-                    :key="zodiac"
-                    :value="zodiac"
-                  >
-                    {{ zodiac }}
-                  </option>
-                </select>
+                  <i class="pi pi-times" aria-hidden="true" />
+                </button>
               </div>
-
-              <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">House System</label>
-                <select
-                  v-model="preferencesDraft.houses_system"
-                  class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  :disabled="savingPreferences || loadingPreferences"
-                >
-                  <option
-                    v-for="house in preferencesOptions.house_systems"
-                    :key="house.code"
-                    :value="house.code"
-                  >
-                    {{ house.code }} - {{ house.label }}
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-[#4a5577]">
-                  <label class="m-0 block text-sm font-medium text-gray-700">Enabled Aspects</label>
-                  <div class="chart-aspects-actions flex items-center gap-2">
-                    <Button
-                      label="All"
-                      text
-                      size="small"
-                      class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
-                      :disabled="savingPreferences || loadingPreferences"
-                      @click="applyDraftAspectPreset('all')"
-                    />
-                    <Button
-                      label="Major"
-                      text
-                      size="small"
-                      class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
-                      :disabled="savingPreferences || loadingPreferences"
-                      @click="applyDraftAspectPreset('major')"
-                    />
-                    <Button
-                      label="None"
-                      text
-                      size="small"
-                      class="px-2 py-1 text-[#5c678d] hover:bg-[rgba(223,230,255,0.45)] hover:text-[#334266]"
-                      :disabled="savingPreferences || loadingPreferences"
-                      @click="applyDraftAspectPreset('none')"
-                    />
-                  </div>
+              <dl>
+                <div v-if="chartData?.date">
+                  <dt>Date</dt>
+                  <dd>{{ chartData.date }}</dd>
                 </div>
-                <div class="grid max-h-[min(30vh,13rem)] grid-cols-1 gap-2 overflow-y-auto pr-0.5 sm:grid-cols-2">
-                  <button
-                    v-for="aspect in preferencesOptions.aspects"
-                    :key="aspect.key"
-                    type="button"
-                    :class="[
-                      'flex min-h-[2.35rem] items-center justify-between gap-2 rounded-[0.7rem] border border-[#d4daef] bg-[rgba(255,255,255,0.76)] px-3 py-2 text-left text-[#425072] hover:border-[#bfc9ec] hover:bg-[rgba(241,245,255,0.82)] disabled:cursor-not-allowed disabled:opacity-65',
-                      preferencesDraft.aspects_enabled[aspect.key] &&
-                        'border-[#98a6df] bg-[linear-gradient(140deg,rgba(230,236,255,0.9)_0%,rgba(245,248,255,0.95)_100%)] shadow-[inset_0_0_0_1px_rgba(143,156,212,0.4)]',
-                    ]"
-                    :aria-pressed="!!preferencesDraft.aspects_enabled[aspect.key]"
-                    :disabled="savingPreferences || loadingPreferences"
-                    @click="
-                      preferencesDraft.aspects_enabled[aspect.key] =
-                        !preferencesDraft.aspects_enabled[aspect.key]
+                <div v-if="fullscreenLocation">
+                  <dt>Location</dt>
+                  <dd>{{ fullscreenLocation }}</dd>
+                </div>
+                <div v-if="chartData?.zodiac_type">
+                  <dt>Zodiac</dt>
+                  <dd>{{ chartData.zodiac_type }}</dd>
+                </div>
+                <div v-if="chartData?.houses_system">
+                  <dt>Houses</dt>
+                  <dd>{{ chartData.houses_system }}</dd>
+                </div>
+                <div v-if="fullscreenAscendant">
+                  <dt>Ascendant</dt>
+                  <dd>{{ fullscreenAscendant }}</dd>
+                </div>
+                <div v-if="fullscreenMidheaven">
+                  <dt>Midheaven</dt>
+                  <dd>{{ fullscreenMidheaven }}</dd>
+                </div>
+              </dl>
+              <section v-if="fullscreenPlanetRows.length" class="astro-disclosure">
+                <button
+                  type="button"
+                  class="astro-disclosure-toggle"
+                  :aria-expanded="fullscreenOpenSections.planets"
+                  @click="toggleFullscreenSection('planets')"
+                >
+                  <span>Planets</span>
+                  <i
+                    :class="
+                      fullscreenOpenSections.planets ? 'pi pi-chevron-down' : 'pi pi-chevron-right'
                     "
-                  >
-                    <span class="text-sm font-medium">{{ aspect.label }}</span>
-                    <span
-                      class="rounded-full bg-[rgba(232,237,255,0.8)] px-2 py-0.5 text-xs whitespace-nowrap text-[#7a85ab]"
-                      >orb {{ aspect.default_orb }}</span
-                    >
-                  </button>
-                </div>
-              </div>
+                    aria-hidden="true"
+                  />
+                </button>
+                <ul v-show="fullscreenOpenSections.planets" class="m-0 list-none p-0">
+                  <li v-for="planet in fullscreenPlanetRows" :key="planet.name">
+                    <span>{{ planet.name }}</span>
+                    <span>{{ planet.detail }}</span>
+                  </li>
+                </ul>
+              </section>
+              <section v-if="fullscreenHouseRows.length" class="astro-disclosure">
+                <button
+                  type="button"
+                  class="astro-disclosure-toggle"
+                  :aria-expanded="fullscreenOpenSections.cusps"
+                  @click="toggleFullscreenSection('cusps')"
+                >
+                  <span>Cusps</span>
+                  <i
+                    :class="
+                      fullscreenOpenSections.cusps ? 'pi pi-chevron-down' : 'pi pi-chevron-right'
+                    "
+                    aria-hidden="true"
+                  />
+                </button>
+                <ul v-show="fullscreenOpenSections.cusps" class="m-0 list-none p-0">
+                  <li v-for="house in fullscreenHouseRows" :key="house.name">
+                    <span>{{ house.name }}</span>
+                    <span>{{ house.detail }}</span>
+                  </li>
+                </ul>
+              </section>
+              <section v-if="fullscreenAspectRows.length" class="astro-disclosure">
+                <button
+                  type="button"
+                  class="astro-disclosure-toggle"
+                  :aria-expanded="fullscreenOpenSections.aspects"
+                  @click="toggleFullscreenSection('aspects')"
+                >
+                  <span>Aspects</span>
+                  <i
+                    :class="
+                      fullscreenOpenSections.aspects ? 'pi pi-chevron-down' : 'pi pi-chevron-right'
+                    "
+                    aria-hidden="true"
+                  />
+                </button>
+                <ul v-show="fullscreenOpenSections.aspects" class="m-0 list-none p-0">
+                  <li v-for="aspect in fullscreenAspectRows" :key="aspect.key">
+                    <span>{{ aspect.text }}</span>
+                    <span v-if="aspect.orb">{{ aspect.orb }}</span>
+                  </li>
+                </ul>
+              </section>
+            </aside>
+          </div>
+        </div>
+        <img
+          v-if="printSvgUrl"
+          :src="printSvgUrl"
+          class="print-chart-image"
+          alt=""
+          aria-hidden="true"
+        />
+
+        <Dialog
+          v-model:visible="showPreferencesDialog"
+          modal
+          header="Edit Preferences"
+          :pt="preferencesDialogPt"
+          :ptOptions="{ mergeProps: true }"
+        >
+          <p class="m-0 mb-4 text-sm text-[#aaa39a]">
+            Configure zodiac, house system, and enabled aspects.
+          </p>
+          <div class="space-y-4" v-if="preferencesDraft">
+            <div>
+              <label
+                class="mb-1 block text-xs font-semibold tracking-[0.08em] text-[#c9a467] uppercase"
+                >Zodiac Type</label
+              >
+              <Select
+                v-model="preferencesDraft.zodiac_type"
+                :options="preferencesOptions.zodiac_types"
+                class="w-full"
+                size="small"
+                :pt="selectPt"
+                :ptOptions="{ mergeProps: true }"
+                :disabled="savingPreferences || loadingPreferences"
+              />
             </div>
 
-            <div class="flex items-center justify-end gap-2 border-t border-gray-200 px-5 py-4">
+            <div>
+              <label
+                class="mb-1 block text-xs font-semibold tracking-[0.08em] text-[#c9a467] uppercase"
+                >House System</label
+              >
+              <Select
+                v-model="preferencesDraft.houses_system"
+                :options="preferencesOptions.house_systems"
+                optionLabel="label"
+                optionValue="code"
+                class="w-full"
+                size="small"
+                :pt="selectPt"
+                :ptOptions="{ mergeProps: true }"
+                :disabled="savingPreferences || loadingPreferences"
+              />
+            </div>
+
+            <div>
+              <div
+                class="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-[#4a454e] pb-1"
+              >
+                <label
+                  class="m-0 block text-xs font-semibold tracking-[0.08em] text-[#c9a467] uppercase"
+                  >Enabled Aspects</label
+                >
+                <div class="chart-aspects-actions flex items-center gap-2">
+                  <Button
+                    label="All"
+                    text
+                    size="small"
+                    class="astro-aspect-preset"
+                    :aria-pressed="isAspectPresetActive(preferencesDraft.aspects_enabled, 'all')"
+                    :pt="textButtonPt"
+                    :ptOptions="{ mergeProps: true }"
+                    :disabled="savingPreferences || loadingPreferences"
+                    @click="applyDraftAspectPreset('all')"
+                  />
+                  <Button
+                    label="Major"
+                    text
+                    size="small"
+                    class="astro-aspect-preset"
+                    :aria-pressed="isAspectPresetActive(preferencesDraft.aspects_enabled, 'major')"
+                    :pt="textButtonPt"
+                    :ptOptions="{ mergeProps: true }"
+                    :disabled="savingPreferences || loadingPreferences"
+                    @click="applyDraftAspectPreset('major')"
+                  />
+                  <Button
+                    label="None"
+                    text
+                    size="small"
+                    class="astro-aspect-preset"
+                    :aria-pressed="isAspectPresetActive(preferencesDraft.aspects_enabled, 'none')"
+                    :pt="textButtonPt"
+                    :ptOptions="{ mergeProps: true }"
+                    :disabled="savingPreferences || loadingPreferences"
+                    @click="applyDraftAspectPreset('none')"
+                  />
+                </div>
+              </div>
+              <div
+                class="grid max-h-[min(30vh,13rem)] grid-cols-1 gap-1.5 overflow-y-auto pr-0.5 sm:grid-cols-2"
+              >
+                <button
+                  v-for="aspect in preferencesOptions.aspects"
+                  :key="aspect.key"
+                  type="button"
+                  :class="[
+                    'astro-aspect-option',
+                  ]"
+                  :aria-pressed="!!preferencesDraft.aspects_enabled[aspect.key]"
+                  :disabled="savingPreferences || loadingPreferences"
+                  @click="
+                    preferencesDraft.aspects_enabled[aspect.key] =
+                      !preferencesDraft.aspects_enabled[aspect.key]
+                  "
+                >
+                  <span class="text-sm font-medium">{{ aspect.label }}</span>
+                  <span
+                    class="rounded-none bg-[#302b2b] px-2 py-0.5 text-xs whitespace-nowrap text-[#c9a467]"
+                    >orb {{ aspect.default_orb }}</span
+                  >
+                </button>
+              </div>
+            </div>
+          </div>
+          <template #footer>
+            <div class="flex items-center justify-end gap-2 border-t border-[#4a454e] pt-3">
               <Button
                 label="Cancel"
                 severity="secondary"
                 outlined
                 @click="cancelPreferences"
                 :disabled="savingPreferences"
+                :pt="secondaryButtonPt"
+                :ptOptions="{ mergeProps: true }"
               />
               <Button
                 label="Save Preferences"
                 icon="pi pi-save"
                 @click="savePreferences"
                 :loading="savingPreferences"
+                :pt="primaryButtonPt"
+                :ptOptions="{ mergeProps: true }"
               />
             </div>
-          </div>
-        </div>
+          </template>
+        </Dialog>
+
+        <Dialog
+          v-model:visible="showAboutDialog"
+          modal
+          header="About Simple Astro Chart"
+          :pt="aboutDialogPt"
+          :ptOptions="{ mergeProps: true }"
+        >
+          <p class="m-0 mb-3 text-sm text-[#f4eee4]">A standalone offline natal chart app.</p>
+          <dl class="m-0 space-y-2 text-sm text-[#bdb4a7]">
+            <div>
+              <dt class="text-[0.62rem] font-semibold tracking-[0.1em] text-[#c9a467] uppercase">
+                Built with
+              </dt>
+              <dd class="m-0">Vue, PrimeVue, Kerykeion, FastAPI, and Electron</dd>
+            </div>
+            <div>
+              <dt class="text-[0.62rem] font-semibold tracking-[0.1em] text-[#c9a467] uppercase">
+                Ephemeris
+              </dt>
+              <dd class="m-0">Swiss Ephemeris, downloaded on demand and stored locally</dd>
+            </div>
+          </dl>
+        </Dialog>
       </div>
     </div>
   </div>
@@ -516,14 +770,186 @@
 
 <script setup>
 import AppMenuBar from './components/AppMenuBar.vue'
-import { ref, onMounted, provide } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, provide, watch, nextTick } from 'vue'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
-import Drawer from 'primevue/drawer'
-import Toast from 'primevue/toast'
-import { useToast } from 'primevue/usetoast'
+import Dialog from 'primevue/dialog'
+import Select from 'primevue/select'
 import ProgressBar from 'primevue/progressbar'
+import { useStatusMessage } from './composables/useStatusMessage.js'
+import { joinList, toUserErrorMessage } from './lib/apiError.js'
+
+const buttonPt = {
+  root: {
+    class: 'astro-control astro-button',
+  },
+  label: { class: 'astro-button-label leading-none' },
+  icon: { class: 'astro-button-icon' },
+}
+
+const primaryButtonPt = {
+  ...buttonPt,
+  root: {
+    class:
+      'astro-control astro-button astro-button-primary border border-[#c9a467] bg-[#c9a467] text-[#17191a] hover:border-[#e0be7b] hover:bg-[#e0be7b]',
+    style: {
+      borderColor: '#c9a467',
+      backgroundColor: '#c9a467',
+      color: '#17191a',
+    },
+  },
+}
+
+const secondaryButtonPt = {
+  ...buttonPt,
+  root: {
+    class:
+      'astro-control astro-button astro-button-secondary border border-[#5c625e] bg-transparent text-[#bdb4a7] hover:border-[#c9a467] hover:bg-[#2b302d] hover:text-[#f4eee4]',
+    style: {
+      borderColor: '#5c625e',
+      backgroundColor: 'transparent',
+      color: '#bdb4a7',
+    },
+  },
+}
+
+const outlinedPrimaryButtonPt = {
+  ...buttonPt,
+  root: {
+    class:
+      'astro-control astro-button astro-button-outlined-primary border border-[#c9a467] bg-transparent text-[#c9a467] hover:border-[#e0be7b] hover:bg-[#2b302d] hover:text-[#e0be7b]',
+    style: {
+      borderColor: '#c9a467',
+      backgroundColor: 'transparent',
+      color: '#c9a467',
+    },
+  },
+}
+
+const textButtonPt = {
+  ...buttonPt,
+  root: {
+    class:
+      'astro-control astro-button astro-button-text border border-transparent bg-transparent text-[#c9a467] hover:border-[#5c625e] hover:bg-[#2b302d] hover:text-[#f4eee4]',
+    style: {
+      backgroundColor: 'transparent',
+      color: '#c9a467',
+    },
+  },
+}
+
+const inputTextPt = {
+  root: {
+    class:
+      'astro-control astro-input h-[34px] rounded-[2px] border border-[#5c625e] bg-[#17191a] px-2.5 py-1.5 text-sm text-[#f4eee4] shadow-none placeholder:text-[#8d8b82]',
+    style: {
+      height: '34px',
+      borderRadius: '2px',
+      borderColor: '#5c625e',
+      backgroundColor: '#17191a',
+      color: '#f4eee4',
+    },
+  },
+}
+
+const inputNumberPt = {
+  root: {
+    class: 'astro-number w-full min-w-0',
+    style: {
+      display: 'block',
+      width: '100%',
+      minHeight: '34px',
+    },
+  },
+}
+
+const selectPt = {
+  root: {
+    class:
+      'astro-control astro-select flex h-[34px] w-full items-center rounded-[2px] border border-[#5c625e] bg-[#17191a] text-sm text-[#f4eee4] shadow-none',
+    style: {
+      height: '34px',
+      borderRadius: '2px',
+      borderColor: '#5c625e',
+      backgroundColor: '#17191a',
+      color: '#f4eee4',
+    },
+  },
+  label: { class: 'min-w-0 flex-1 px-2.5 py-1.5 text-sm text-[#f4eee4]' },
+  dropdown: { class: 'ml-auto flex h-full w-8 shrink-0 items-center justify-center text-[#c9a467]' },
+  dropdownIcon: { class: 'text-[#c9a467]' },
+  overlay: {
+    class: 'astro-select-overlay max-w-full overflow-hidden rounded-[2px] border border-[#5c625e] bg-[#222625] shadow-xl',
+  },
+  listContainer: { class: 'max-h-[min(40vh,16rem)] overflow-y-auto' },
+  list: { class: 'p-1' },
+  option: {
+    class:
+      'rounded-[2px] px-2 py-1.5 text-sm text-[#bdb4a7] hover:bg-[#2b302d] hover:text-[#f4eee4]',
+  },
+}
+
+const birthDataDialogPt = {
+  mask: {
+    class: 'astro-dialog-mask',
+  },
+  root: {
+    class:
+      'astro-dialog astro-birth-data-dialog w-[min(92vw,34rem)] rounded-[2px] border border-[#5c625e] bg-[#222625] shadow-2xl',
+  },
+  header: {
+    class: 'astro-overlay-header border-b border-[#5c625e] bg-[#17191a] px-4 py-3 text-[#f4eee4]',
+  },
+  title: { class: 'text-sm font-semibold tracking-[0.06em] uppercase' },
+  content: { class: 'astro-overlay-content max-h-[75vh] overflow-y-auto px-4 py-3 text-[#bdb4a7]' },
+  closeButton: {
+    class: 'h-7 w-7 rounded-[2px] text-[#bdb4a7] hover:bg-[#2b302d] hover:text-[#f4eee4]',
+  },
+  footer: { class: 'bg-[#222625] px-4 pb-4' },
+}
+
+const aboutDialogPt = {
+  mask: {
+    class: 'astro-dialog-mask',
+  },
+  root: {
+    class:
+      'astro-dialog w-[min(92vw,28rem)] rounded-[2px] border border-[#5c625e] bg-[#222625] shadow-2xl',
+  },
+  header: {
+    class: 'astro-overlay-header border-b border-[#5c625e] bg-[#17191a] px-4 py-3 text-[#f4eee4]',
+  },
+  title: { class: 'text-sm font-semibold tracking-[0.06em] uppercase' },
+  content: { class: 'astro-overlay-content px-4 py-4 text-[#bdb4a7]' },
+  closeButton: {
+    class: 'h-7 w-7 rounded-[2px] text-[#bdb4a7] hover:bg-[#2b302d] hover:text-[#f4eee4]',
+  },
+}
+
+const preferencesDialogPt = {
+  mask: {
+    class: 'astro-dialog-mask',
+  },
+  root: {
+    class:
+      'astro-dialog w-[min(92vw,38rem)] rounded-[2px] border border-[#5c625e] bg-[#222625] shadow-2xl',
+  },
+  header: {
+    class: 'astro-overlay-header border-b border-[#5c625e] bg-[#17191a] px-4 py-3 text-[#f4eee4]',
+  },
+  title: { class: 'text-sm font-semibold tracking-[0.06em] uppercase' },
+  content: { class: 'astro-overlay-content px-4 py-3 text-[#bdb4a7]' },
+  footer: { class: 'bg-[#222625] px-4 pb-4' },
+  closeButton: {
+    class: 'h-7 w-7 rounded-[2px] text-[#bdb4a7] hover:bg-[#2b302d] hover:text-[#f4eee4]',
+  },
+}
+
+const progressBarPt = {
+  root: { class: 'astro-progressbar' },
+  value: { class: 'astro-progressbar-value' },
+}
 
 const preferences = ref({
   zodiac_type: 'Tropical',
@@ -537,11 +963,21 @@ const preferencesOptions = ref({
   aspects: [],
 })
 
+const showAboutDialog = ref(false)
 const showPreferencesDialog = ref(false)
 const preferencesDraft = ref(null)
 const loadingPreferences = ref(false)
 const savingPreferences = ref(false)
 const loadingStage = ref(null) // null | 'ephemeris' | 'chart'
+
+const FALLBACK_HOUSE_SYSTEMS = [
+  { code: 'P', label: 'Placidus' },
+  { code: 'K', label: 'Koch' },
+  { code: 'W', label: 'Whole Sign' },
+  { code: 'R', label: 'Regiomontanus' },
+  { code: 'C', label: 'Campanus' },
+  { code: 'A', label: 'Equal' },
+]
 
 const initialFormData = {
   name: '',
@@ -556,21 +992,219 @@ const initialFormData = {
   city: '',
   nation: '',
   zodiac_type: '',
-  houses_system: '',
+  houses_system: 'P',
 }
 
 const formData = ref({ ...initialFormData })
+const timezoneManuallyEdited = ref(false)
+const applyingResolvedTimezone = ref(false)
+
+const houseSystemOptions = computed(() =>
+  preferencesOptions.value.house_systems?.length
+    ? preferencesOptions.value.house_systems
+    : FALLBACK_HOUSE_SYSTEMS,
+)
+
+const REQUIRED_BIRTH_FIELDS = [
+  ['day', 'Day'],
+  ['month', 'Month'],
+  ['year', 'Year'],
+  ['hour', 'Hour'],
+  ['minute', 'Minute'],
+  ['lat', 'Latitude'],
+  ['lng', 'Longitude'],
+]
+
+const missingBirthFieldLabels = () =>
+  REQUIRED_BIRTH_FIELDS.filter(([key]) => {
+    const value = formData.value[key]
+    return value == null || value === ''
+  }).map(([, label]) => label)
 
 const chartData = ref()
 const loading = ref(false)
 const svgUrl = ref()
+const printSvgUrl = ref()
 const showSidebar = ref(false)
 const showFullScreen = ref(false)
+const fullscreenSvg = ref('')
 const showMagnifier = ref(false)
+
+const formatChartDegree = (value) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return ''
+  const degrees = Math.floor(value)
+  const minutes = Math.round((value - degrees) * 60)
+  return `${degrees}°${String(minutes).padStart(2, '0')}'`
+}
+
+const ZODIAC_SIGN_NAMES = {
+  ari: 'Aries',
+  aries: 'Aries',
+  tau: 'Taurus',
+  taurus: 'Taurus',
+  gem: 'Gemini',
+  gemini: 'Gemini',
+  can: 'Cancer',
+  cancer: 'Cancer',
+  leo: 'Leo',
+  vir: 'Virgo',
+  virgo: 'Virgo',
+  lib: 'Libra',
+  libra: 'Libra',
+  sco: 'Scorpio',
+  scorpio: 'Scorpio',
+  sag: 'Sagittarius',
+  sagittarius: 'Sagittarius',
+  cap: 'Capricorn',
+  capricorn: 'Capricorn',
+  aqu: 'Aquarius',
+  aquarius: 'Aquarius',
+  pis: 'Pisces',
+  pisces: 'Pisces',
+}
+
+const formatZodiacSign = (value) => {
+  if (!value) return ''
+  const key = String(value).trim().toLowerCase()
+  return ZODIAC_SIGN_NAMES[key] || String(value)
+}
+
+const fullscreenPlanetRows = computed(() => {
+  const planets = chartData.value?.planets
+  if (!planets || typeof planets !== 'object') return []
+  return Object.values(planets)
+    .filter((planet) => planet && planet.name)
+    .map((planet) => ({
+      name: planet.name,
+      detail: [
+        planet.sign,
+        formatChartDegree(planet.position),
+        planet.house,
+        planet.retrograde ? 'Rx' : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+    }))
+})
+
+const fullscreenHouseRows = computed(() => {
+  const houses = chartData.value?.houses
+  if (!houses || typeof houses !== 'object') return []
+  return Object.values(houses)
+    .filter((house) => house && house.house != null)
+    .sort((left, right) => Number(left.house) - Number(right.house))
+    .map((house) => ({
+      name: `House ${house.house}`,
+      detail: [house.sign, formatChartDegree(house.position)].filter(Boolean).join(' '),
+    }))
+})
+
+const fullscreenAspectRows = computed(() => {
+  const aspects = chartData.value?.aspects
+  if (!Array.isArray(aspects)) return []
+  return aspects
+    .filter((aspect) => aspect && (aspect.p1 || aspect.p2 || aspect.aspect))
+    .map((aspect, index) => ({
+      key: `${aspect.p1}-${aspect.aspect}-${aspect.p2}-${index}`,
+      text: [aspect.p1, aspect.aspect, aspect.p2].filter(Boolean).join(' '),
+      orb:
+        typeof aspect.orbit === 'number'
+          ? `${aspect.orbit.toFixed(2)}°`
+          : aspect.orbit
+            ? String(aspect.orbit)
+            : '',
+    }))
+})
+
+const fullscreenLocation = computed(() => {
+  const location = chartData.value?.location
+  const city = location?.city || formData.value.city
+  const nation = location?.nation || formData.value.nation
+  const place = [city, nation].filter(Boolean).join(', ')
+  if (place) return place
+  if (!location) return ''
+  if (location.lat == null || location.lng == null) return ''
+  return `${location.lat}, ${location.lng}`
+})
+
+const fullscreenAscendant = computed(() => formatZodiacSign(chartData.value?.ascendant))
+const fullscreenMidheaven = computed(() => formatZodiacSign(chartData.value?.mc))
+
+const hasFullscreenDetails = computed(
+  () =>
+    Boolean(chartData.value?.name || chartData.value?.date) ||
+    fullscreenPlanetRows.value.length > 0 ||
+    fullscreenHouseRows.value.length > 0 ||
+    fullscreenAspectRows.value.length > 0,
+)
+
+const showFullscreenDetailsPanel = ref(true)
+
+const CHART_REPORT_CHROME_NODES = [
+  'Top_Left_Text',
+  'Elements_Percentages',
+  'Qualities_Percentages',
+  'Bottom_Left_Text',
+  'Lunar_Phase',
+  'Houses_And_Planets_Grid',
+  'Aspect_Grid',
+  'Aspect_List',
+  'Main_Planet_Grid',
+  'Main_Houses_Grid',
+  'Secondary_Planet_Grid',
+  'Secondary_Houses_Grid',
+]
+
+const fullscreenOpenSections = ref({
+  planets: false,
+  cusps: false,
+  aspects: false,
+})
+
+const toggleFullscreenSection = (section) => {
+  fullscreenOpenSections.value = {
+    ...fullscreenOpenSections.value,
+    [section]: !fullscreenOpenSections.value[section],
+  }
+}
+
+const hideChartReportChrome = (host) => {
+  if (!host) return
+  for (const name of CHART_REPORT_CHROME_NODES) {
+    host.querySelectorAll(`[kr\\:node="${name}"]`).forEach((node) => {
+      node.setAttribute('display', 'none')
+      node.style.display = 'none'
+    })
+  }
+}
+
+watch(
+  () => [showFullScreen.value, svgUrl.value],
+  async ([open, url]) => {
+    if (!open || !url) {
+      fullscreenSvg.value = ''
+      fullscreenOpenSections.value = { planets: false, cusps: false, aspects: false }
+      showFullscreenDetailsPanel.value = true
+      return
+    }
+    try {
+      const response = await fetch(url)
+      if (!response.ok) {
+        fullscreenSvg.value = ''
+        return
+      }
+      fullscreenSvg.value = await response.text()
+      await nextTick()
+      hideChartReportChrome(document.querySelector('.astro-chart-fullscreen-wheel'))
+    } catch {
+      fullscreenSvg.value = ''
+    }
+  },
+)
 const magnifierScale = 1.4
 const recentFiles = ref([])
 const backendBaseUrl = ref('http://127.0.0.1:8080')
-const toast = useToast()
+const statusMessage = useStatusMessage()
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -600,6 +1234,32 @@ const apiCall = async (method, endpoint, body = null) => {
     body: toPlainPayload(body),
   })
 }
+
+const onTimezoneInput = () => {
+  if (!applyingResolvedTimezone.value) timezoneManuallyEdited.value = true
+}
+
+let timezoneLookupTimer = null
+watch(
+  () => [formData.value.lat, formData.value.lng],
+  ([lat, lng]) => {
+    if (lat == null || lng == null || timezoneManuallyEdited.value) return
+    if (timezoneLookupTimer) clearTimeout(timezoneLookupTimer)
+    timezoneLookupTimer = setTimeout(async () => {
+      try {
+        const result = await apiCall('GET', `/timezone?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`)
+        if (!result?.tz_str || timezoneManuallyEdited.value) return
+        applyingResolvedTimezone.value = true
+        formData.value.tz_str = result.tz_str
+        await nextTick()
+      } catch (error) {
+        console.warn('Could not resolve timezone from coordinates', error)
+      } finally {
+        applyingResolvedTimezone.value = false
+      }
+    }, 400)
+  },
+)
 
 const apiCallWithRetry = async (
   method,
@@ -661,10 +1321,9 @@ const loadPreferenceOptions = async () => {
     }
   } catch (e) {
     console.error('Failed to load preferences options:', e)
-    toast.add({
-      severity: 'warn',
-      summary: 'Preferences options unavailable',
-      detail: 'Using fallback preferences values.',
+    statusMessage.show({
+      tone: 'ok',
+      text: 'Using fallback preferences.',
       life: 3000,
     })
   }
@@ -678,6 +1337,9 @@ const loadPreferences = async () => {
       delayMs: 250,
     })
     preferences.value = normalizePreferences(loaded)
+    if (!formData.value.houses_system) {
+      formData.value.houses_system = preferences.value.houses_system
+    }
   } catch (e) {
     console.error('Failed to load preferences:', e)
     preferences.value = normalizePreferences(preferences.value)
@@ -698,7 +1360,7 @@ const cancelPreferences = () => {
 
 const persistPreferences = async (
   nextPreferences,
-  { suppressErrorToast = false, regenerateChart = true } = {},
+  { suppressErrorStatus = false, regenerateChart = true } = {},
 ) => {
   savingPreferences.value = true
   try {
@@ -716,12 +1378,10 @@ const persistPreferences = async (
 
     return { ok: true, regenerated: false }
   } catch (e) {
-    if (!suppressErrorToast) {
-      toast.add({
-        severity: 'error',
-        summary: 'Save failed',
-        detail: e.message || 'Could not save preferences',
-        life: 5000,
+    if (!suppressErrorStatus) {
+      statusMessage.show({
+        tone: 'problem',
+        text: `Could not save preferences. ${toUserErrorMessage(e, 'Please try again.')}`,
       })
     }
     return { ok: false }
@@ -738,28 +1398,14 @@ const savePreferences = async () => {
     return
   }
 
+  formData.value.houses_system = preferences.value.houses_system
   showPreferencesDialog.value = false
   preferencesDraft.value = null
 
-  if (result.regenerated) {
-    toast.add({
-      severity: 'success',
-      summary: 'Preferences saved',
-      detail: 'Chart regenerated with updated preferences.',
-      life: 3000,
-    })
-  } else {
-    toast.add({ severity: 'success', summary: 'Preferences saved', life: 2500 })
-  }
+  statusMessage.show({ tone: 'ok', text: 'Preferences saved' })
 }
 
-const MAJOR_ASPECT_NAMES = new Set([
-  'conjunction',
-  'opposition',
-  'trine',
-  'square',
-  'sextile',
-])
+const MAJOR_ASPECT_NAMES = new Set(['conjunction', 'opposition', 'trine', 'square', 'sextile'])
 
 const isMajorAspect = (aspect) => {
   const key = String(aspect.key || '').toLowerCase()
@@ -773,6 +1419,13 @@ const buildAspectPreset = (mode) => {
       aspect.key,
       mode === 'all' ? true : mode === 'major' ? isMajorAspect(aspect) : false,
     ]),
+  )
+}
+
+const isAspectPresetActive = (aspectsEnabled, mode) => {
+  const expected = buildAspectPreset(mode)
+  return preferencesOptions.value.aspects.every(
+    (aspect) => !!aspectsEnabled?.[aspect.key] === expected[aspect.key],
   )
 }
 
@@ -800,7 +1453,7 @@ const updateAspectPreference = async (aspectKey, enabled) => {
   }
 
   const result = await persistPreferences(nextPreferences, {
-    suppressErrorToast: true,
+    suppressErrorStatus: true,
     regenerateChart: true,
   })
 
@@ -809,11 +1462,9 @@ const updateAspectPreference = async (aspectKey, enabled) => {
     if (preferencesDraft.value) {
       preferencesDraft.value = normalizePreferences(previousPreferences)
     }
-    toast.add({
-      severity: 'error',
-      summary: 'Update failed',
-      detail: 'Could not update aspect preferences.',
-      life: 4000,
+    statusMessage.show({
+      tone: 'problem',
+      text: 'Could not update aspect preferences.',
     })
   }
 }
@@ -831,7 +1482,7 @@ const applyChartAspectPreset = async (mode) => {
   }
 
   const result = await persistPreferences(nextPreferences, {
-    suppressErrorToast: true,
+    suppressErrorStatus: true,
     regenerateChart: true,
   })
 
@@ -840,21 +1491,32 @@ const applyChartAspectPreset = async (mode) => {
     if (preferencesDraft.value) {
       preferencesDraft.value = normalizePreferences(previousPreferences)
     }
-    toast.add({
-      severity: 'error',
-      summary: 'Update failed',
-      detail: 'Could not update aspect preferences.',
-      life: 4000,
+    statusMessage.show({
+      tone: 'problem',
+      text: 'Could not update aspect preferences.',
     })
   }
 }
 
 const generateChart = async ({ notifySuccess = true } = {}) => {
   console.log('Generating chart with data:', formData.value)
+  const missing = missingBirthFieldLabels()
+  if (missing.length) {
+    statusMessage.show({
+      tone: 'problem',
+      text:
+        missing.length >= 3
+          ? 'Enter birth date, time, and location before generating a chart.'
+          : `${joinList(missing)} ${missing.length === 1 ? 'is' : 'are'} required.`,
+    })
+    return
+  }
+
   loading.value = true
   loadingStage.value = 'ephemeris'
   chartData.value = null
   svgUrl.value = null
+  printSvgUrl.value = null
   showFullScreen.value = false
 
   try {
@@ -865,11 +1527,11 @@ const generateChart = async ({ notifySuccess = true } = {}) => {
         await loadEphemerisStatus()
       } catch (epheErr) {
         const isEpheError = (epheErr.message || '').toLowerCase().includes('ephemeris')
-        toast.add({
-          severity: 'error',
-          summary: isEpheError ? 'Ephemeris data needed' : 'Error',
-          detail: epheErr.message || 'Could not download ephemeris data',
-          life: 6000,
+        statusMessage.show({
+          tone: 'problem',
+          text: isEpheError
+            ? `Ephemeris data is needed. ${toUserErrorMessage(epheErr, 'Could not download ephemeris data.')}`
+            : toUserErrorMessage(epheErr, 'Could not download ephemeris data.'),
         })
         return
       }
@@ -880,27 +1542,34 @@ const generateChart = async ({ notifySuccess = true } = {}) => {
 
     const res = await apiCall('POST', '/chart', {
       data: { ...formData.value },
-      data2: preferences.value,
+      data2: {
+        ...preferences.value,
+        houses_system: formData.value.houses_system || preferences.value.houses_system,
+      },
     })
 
     chartData.value = res
 
-    let svgPath = res.svg_path
-    if (svgPath && svgPath.startsWith('/charts_output')) {
-      svgUrl.value = `${backendBaseUrl.value}${svgPath}?t=${Date.now()}`
-    } else {
-      const joiner = svgPath && svgPath.includes('?') ? '&' : '?'
-      svgUrl.value = svgPath ? `${svgPath}${joiner}t=${Date.now()}` : svgPath
+    const resolveChartAssetUrl = (path) => {
+      if (!path) return ''
+      if (path.startsWith('/charts_output')) {
+        return `${backendBaseUrl.value}${path}?t=${Date.now()}`
+      }
+      const joiner = path.includes('?') ? '&' : '?'
+      return `${path}${joiner}t=${Date.now()}`
     }
 
+    svgUrl.value = resolveChartAssetUrl(res.svg_path)
+    printSvgUrl.value = resolveChartAssetUrl(res.print_svg_path) || svgUrl.value
+    showSidebar.value = false
   } catch (e) {
     console.error('Chart generation error:', e)
     const isEpheError = (e.message || '').toLowerCase().includes('ephemeris')
-    toast.add({
-      severity: 'error',
-      summary: isEpheError ? 'Ephemeris data needed' : 'Error',
-      detail: e.message || 'Failed to generate chart',
-      life: 6000,
+    statusMessage.show({
+      tone: 'problem',
+      text: isEpheError
+        ? `Ephemeris data is needed. ${toUserErrorMessage(e, 'Failed to generate chart.')}`
+        : toUserErrorMessage(e, 'Could not generate the chart.'),
     })
   } finally {
     loading.value = false
@@ -916,13 +1585,13 @@ const loadRecentFiles = async () => {
   }
 }
 
-const saveChartToFile = async () => {
+const currentChartPath = ref(null)
+
+const saveChartToFile = async ({ saveAs = false } = {}) => {
   if (!chartData.value) {
-    toast.add({
-      severity: 'warn',
-      summary: 'No chart to save',
-      detail: 'Generate a chart first',
-      life: 3000,
+    statusMessage.show({
+      tone: 'ok',
+      text: 'Generate a chart before saving',
     })
     return
   }
@@ -930,13 +1599,22 @@ const saveChartToFile = async () => {
     const payload = JSON.parse(
       JSON.stringify({ version: '1.0', birthData: formData.value, chartData: chartData.value }),
     )
-    const result = await window.electronAPI.saveChartFile(payload, formData.value.name || 'chart')
+    const existingPath = saveAs ? null : currentChartPath.value
+    const result = await window.electronAPI.saveChartFile(
+      payload,
+      formData.value.name || 'chart',
+      existingPath,
+    )
     if (result?.success) {
-      toast.add({ severity: 'success', summary: 'Chart saved', life: 3000 })
+      if (result.filePath) currentChartPath.value = result.filePath
+      statusMessage.show({ tone: 'ok', text: 'Chart saved' })
       await loadRecentFiles()
     }
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Save failed', detail: e.message })
+    statusMessage.show({
+      tone: 'problem',
+      text: `Could not save the chart. ${toUserErrorMessage(e, 'Please try again.')}`,
+    })
   }
 }
 
@@ -945,10 +1623,15 @@ const openChartFromFile = async () => {
     const result = await window.electronAPI.openChartFile()
     if (!result) return
     formData.value = { ...formData.value, ...result.birthData }
+    timezoneManuallyEdited.value = Boolean(result.birthData?.tz_str)
+    currentChartPath.value = result.filePath || null
     await generateChart()
     await loadRecentFiles()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Open failed', detail: e.message })
+    statusMessage.show({
+      tone: 'problem',
+      text: `Could not open the chart. ${toUserErrorMessage(e, 'Please try again.')}`,
+    })
   }
 }
 
@@ -957,10 +1640,15 @@ const openRecentChartFile = async (filePath) => {
     const result = await window.electronAPI.openRecentFile(filePath)
     if (!result) return
     formData.value = { ...formData.value, ...result.birthData }
+    timezoneManuallyEdited.value = Boolean(result.birthData?.tz_str)
+    currentChartPath.value = result.filePath || filePath
     await generateChart()
     await loadRecentFiles()
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Open failed', detail: e.message })
+    statusMessage.show({
+      tone: 'problem',
+      text: `Could not open the chart. ${toUserErrorMessage(e, 'Please try again.')}`,
+    })
   }
 }
 
@@ -969,11 +1657,18 @@ const toggleMagnifier = () => {
 }
 
 const resetForm = () => {
-  formData.value = { ...initialFormData }
+  formData.value = {
+    ...initialFormData,
+    houses_system: preferences.value.houses_system || 'P',
+    tz_str: '',
+  }
+  timezoneManuallyEdited.value = false
   chartData.value = null
   svgUrl.value = null
+  printSvgUrl.value = null
   showFullScreen.value = false
   showMagnifier.value = false
+  currentChartPath.value = null
 }
 
 const loadEphemerisStatus = async () => {
@@ -988,34 +1683,78 @@ const loadEphemerisStatus = async () => {
 const ensureEphemerisForYear = async (year) => {
   try {
     const result = await apiCall('POST', `/ephemeris/ensure?year=${year}`)
-    toast.add({
-      severity: 'success',
-      summary: 'Ephemeris ready',
-      detail: `Files for year ${year} are available.`,
-      life: 3000,
-    })
     await loadEphemerisStatus()
     return result
   } catch (e) {
-    toast.add({
-      severity: 'error',
-      summary: 'Download failed',
-      detail: e.message || 'Could not download ephemeris data',
-      life: 5000,
+    statusMessage.show({
+      tone: 'problem',
+      text: `Could not download ephemeris data. ${toUserErrorMessage(e, 'Please try again.')}`,
     })
     throw e
   }
 }
 
 // Provide to child components (AppMenuBar)
-provide('saveChart', saveChartToFile)
+const printChart = () => {
+  if (!svgUrl.value && !printSvgUrl.value) {
+    statusMessage.show({ tone: 'ok', text: 'Generate a chart before printing' })
+    return
+  }
+  const img = document.querySelector('.print-chart-image')
+  if (!img) {
+    statusMessage.show({ tone: 'problem', text: 'Could not find the chart to print.' })
+    return
+  }
+  const printNow = () => window.setTimeout(() => window.print(), 100)
+  if (img.complete) {
+    printNow()
+    return
+  }
+  img.onload = printNow
+  img.onerror = printNow
+}
+
+const onWindowKeydown = (event) => {
+  if (event.key !== 'Escape') return
+  if (showFullScreen.value) {
+    showFullScreen.value = false
+    event.preventDefault()
+    return
+  }
+  if (showAboutDialog.value) {
+    showAboutDialog.value = false
+    event.preventDefault()
+    return
+  }
+  if (showPreferencesDialog.value) {
+    cancelPreferences()
+    event.preventDefault()
+    return
+  }
+  if (showSidebar.value) {
+    showSidebar.value = false
+    event.preventDefault()
+  }
+}
+
+provide('saveChart', () => saveChartToFile({ saveAs: false }))
+provide('saveChartAs', () => saveChartToFile({ saveAs: true }))
+provide('newChart', () => {
+  resetForm()
+  showSidebar.value = true
+})
 provide('openChart', openChartFromFile)
 provide('openPreferences', openPreferencesDialog)
+provide('openAbout', () => {
+  showAboutDialog.value = true
+})
+provide('printChart', printChart)
 provide('recentFiles', recentFiles)
 provide('openRecentFile', openRecentChartFile)
 
 // Auto-start backend
 onMounted(async () => {
+  window.addEventListener('keydown', onWindowKeydown)
   window.addEventListener('theme-updated', (e) => {
     // Sync PrimeVue/Tailwind dark mode if needed
     if (e.detail) {
@@ -1032,5 +1771,9 @@ onMounted(async () => {
   await loadPreferences()
   await loadRecentFiles()
   await loadEphemerisStatus()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onWindowKeydown)
 })
 </script>
