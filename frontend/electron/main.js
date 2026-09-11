@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { spawn } from 'child_process'
 import net from 'net'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { formatApiErrorDetail } from '../src/lib/apiError.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isPlaywright = process.env.PLAYWRIGHT === '1'
@@ -20,7 +21,14 @@ function getMockApiResponse(method, endpoint) {
   if (method === 'GET' && endpoint === '/preferences/options') {
     return {
       zodiac_types: ['Tropical', 'Sidereal'],
-      house_systems: [],
+      house_systems: [
+        { code: 'P', label: 'Placidus' },
+        { code: 'K', label: 'Koch' },
+        { code: 'W', label: 'Whole Sign' },
+        { code: 'R', label: 'Regiomontanus' },
+        { code: 'C', label: 'Campanus' },
+        { code: 'A', label: 'Equal' },
+      ],
       aspects: [
         { key: 'conjunction', label: 'Conjunction', default_orb: 8 },
         { key: 'opposition', label: 'Opposition', default_orb: 8 },
@@ -49,6 +57,10 @@ function getMockApiResponse(method, endpoint) {
     }
   }
 
+  if (method === 'GET' && endpoint.startsWith('/timezone')) {
+    return { tz_str: 'Europe/London', source: 'coordinates' }
+  }
+
   if (method === 'GET' && endpoint === '/ephemeris/status') {
     return {
       ephe_dir: '',
@@ -64,6 +76,7 @@ function getMockApiResponse(method, endpoint) {
   if (method === 'POST' && endpoint === '/chart') {
     return {
       svg_path: '/mock-chart.svg',
+      print_svg_path: '/mock-chart.svg',
     }
   }
 
@@ -317,8 +330,7 @@ ipcMain.handle('api-request', async (event, { method, endpoint, body }) => {
     }
 
     if (!response.ok) {
-      const detail = responseBody?.detail || responseText || `HTTP ${response.status}`
-      throw new Error(`HTTP ${response.status}: ${detail}`)
+      throw new Error(formatApiErrorDetail(responseBody?.detail, response.status))
     }
 
     return responseBody
@@ -362,13 +374,17 @@ function saveRecentFile(filePath, name) {
   }
 }
 
-ipcMain.handle('save-chart-file', async (event, data, suggestedName) => {
-  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
-    title: 'Save Chart',
-    defaultPath: `${suggestedName || 'chart'}.json`,
-    filters: [{ name: 'Chart Files', extensions: ['json'] }],
-  })
-  if (canceled || !filePath) return { success: false }
+ipcMain.handle('save-chart-file', async (event, data, suggestedName, existingPath) => {
+  let filePath = existingPath
+  if (!filePath) {
+    const { canceled, filePath: chosenPath } = await dialog.showSaveDialog(mainWindow, {
+      title: 'Save Chart',
+      defaultPath: `${suggestedName || 'chart'}.json`,
+      filters: [{ name: 'Chart Files', extensions: ['json'] }],
+    })
+    if (canceled || !chosenPath) return { success: false }
+    filePath = chosenPath
+  }
 
   try {
     writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8')

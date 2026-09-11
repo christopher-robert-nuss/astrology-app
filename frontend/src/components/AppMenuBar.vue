@@ -1,49 +1,76 @@
 <template>
-  <Menubar
-    :model="items"
-    breakpoint="100px"
-    :pt="pt"
-    :ptOptions="{ mergeProps: true }"
-  />
+<div class="astro-menu-hover-guard" @mouseenter.capture.stop>
+  <Menubar :model="items" breakpoint="640px" :pt="pt" :ptOptions="{ mergeProps: true }" />
+  <AppStatusMessage />
+</div>
 </template>
 
 <script setup>
 import { ref, computed, inject } from 'vue'
 import Menubar from 'primevue/menubar'
+import AppStatusMessage from './AppStatusMessage.vue'
 
 const pt = {
   root: {
     class:
-      'm-0 w-full rounded-none border-x-0 border-t-0 border-b border-[rgba(168,176,214,0.45)] bg-[rgba(247,249,255,0.72)] p-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-[8px]',
+      'astro-menubar m-0 w-full rounded-none border-x-0 border-t-0 border-b border-[rgba(239,232,220,0.16)] bg-[#17191a] p-0 shadow-none',
+    style: {
+      borderRadius: '0',
+      borderColor: 'rgba(239, 232, 220, 0.16)',
+      backgroundColor: '#17191a',
+      boxShadow: 'none',
+    },
+  },
+  button: {
+    class: 'astro-menu-button',
+  },
+  buttonicon: {
+    class: 'astro-menu-button-icon',
   },
   rootList: {
-    class: 'm-0 flex w-full list-none bg-transparent p-0',
+    class: 'astro-menu-list m-0 flex w-full list-none bg-transparent p-0',
   },
 
   item: ({ context }) => ({
     class: [
-      'relative m-0 p-0 transition-colors duration-150',
+      'astro-menu-item relative m-0 p-0 transition-colors duration-150',
       context.focused && 'outline-none',
     ],
   }),
 
   itemContent: ({ context }) => ({
     class: [
-      'flex w-full cursor-pointer items-center gap-x-2 rounded-none bg-transparent',
-      context.active && context.level === 0 && 'shadow-[inset_0_-2px_0_#8a95d4]',
-      context.level > 0 && 'hover:bg-[rgba(225,231,255,0.42)]',
+      'astro-menu-item-content flex w-full cursor-pointer items-center rounded-none bg-transparent',
+      context.active && context.level === 0 && 'shadow-[inset_0_-2px_0_#c9a467]',
+      context.level > 0 && 'hover:bg-[#2b302d]',
     ],
   }),
 
   itemLink: ({ context }) => ({
     class: [
-      'flex flex-1 items-center gap-x-2 rounded-none! no-underline transition-colors',
+      'astro-menu-link flex flex-1 items-center gap-x-2 rounded-none! no-underline transition-colors',
       context.level === 0 &&
-        'px-[1.1rem] py-[0.42rem] text-[0.73rem] font-semibold uppercase tracking-[0.09em] text-[#4a5577] hover:text-[#2f3a5a]',
+        'text-[#bdb4a7] hover:text-[#f4eee4]',
       context.level > 0 &&
-        'px-[0.86rem] py-[0.52rem] text-[0.84rem] font-medium normal-case tracking-normal text-[#455170]',
-      (context.active || context.focused) && 'text-[#2f3a5a]',
+        'text-[#bdb4a7]',
+      (context.active || context.focused) && 'text-[#f4eee4]',
     ],
+    style:
+      context.level === 0
+        ? {
+            padding: 'var(--astro-menu-root-padding-y) var(--astro-menu-root-padding-x)',
+            color: context.active || context.focused ? '#f4eee4' : '#bdb4a7',
+            fontSize: '0.7rem',
+            fontWeight: '600',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+          }
+        : {
+            padding: 'var(--astro-menu-submenu-padding-y) var(--astro-menu-submenu-padding-x)',
+            color: context.active || context.focused ? '#f4eee4' : '#bdb4a7',
+            fontSize: 'var(--astro-menu-submenu-font-size)',
+            fontWeight: '500',
+          },
   }),
 
   itemIcon: {
@@ -55,26 +82,35 @@ const pt = {
   },
 
   submenu: {
-    class: 'min-w-[210px] rounded-md border border-[#d3d8ef] bg-[rgba(252,253,255,0.98)] py-1 shadow-xl',
+    class:
+      'astro-submenu min-w-[196px] rounded-none border border-[#5c625e] bg-[#222625] py-0.5 shadow-xl',
+    style: {
+      minWidth: '210px',
+      borderRadius: '0',
+      borderColor: '#5c625e',
+      backgroundColor: '#222625',
+      boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45)',
+    },
   },
 
   submenuIcon: ({ context }) => ({
-    class: [
-      'ml-auto text-sm transition-transform',
-      context.active && 'rotate-180',
-    ],
+    class: ['ml-auto text-sm transition-transform', context.active && 'rotate-180'],
   }),
 
   // Separators
   separator: {
-    class: 'my-1 border-t border-surface-200 mx-4',
+    class: 'astro-menu-separator my-1 border-t border-[#5c625e] mx-3',
   },
 }
 
 // Injected from App.vue
 const doSaveChart = inject('saveChart', () => {})
+const doSaveChartAs = inject('saveChartAs', () => {})
 const doOpenChart = inject('openChart', () => {})
+const doNewChart = inject('newChart', () => {})
 const doOpenPreferences = inject('openPreferences', () => {})
+const doOpenAbout = inject('openAbout', null)
+const doPrintChart = inject('printChart', null)
 const recentFiles = inject('recentFiles', ref([]))
 const doOpenRecentFile = inject('openRecentFile', () => {})
 
@@ -121,41 +157,28 @@ const items = computed(() => [
 
 // Menu command handlers
 const newChart = () => {
-  // Reset form
-  window.location.reload() // temporary
+  doNewChart()
 }
 const openChart = () => doOpenChart()
 const saveChart = () => doSaveChart()
-const saveChartAs = () => doSaveChart()
+const saveChartAs = () => doSaveChartAs()
 
 // In App.vue or your Menu Component
 const handlePrint = async () => {
-  const img = document.querySelector('.print-chart-image')
-
-  if (!img) {
-    console.error('Target image not found')
+  if (doPrintChart) {
+    doPrintChart()
     return
   }
 
-  // Wait for image to be fully loaded
-  const ensureLoaded = new Promise((resolve) => {
-    if (img.complete) {
-      resolve()
-    } else {
-      img.onload = resolve
-      img.onerror = () => {
-        console.warn('Image failed to load, proceeding anyway')
-        resolve()
-      }
-    }
-  })
-
-  await ensureLoaded
-
-  // Small delay to ensure DOM paints before print dialog opens
-  setTimeout(() => {
-    window.print()
-  }, 100)
+  const img = document.querySelector('.print-chart-image')
+  if (!img) return
+  const printNow = () => window.setTimeout(() => window.print(), 100)
+  if (img.complete) {
+    printNow()
+    return
+  }
+  img.onload = printNow
+  img.onerror = printNow
 }
 
 const exitApp = () => {
@@ -183,27 +206,12 @@ const showDocs = () => {
   }
 }
 const showAbout = () => {
-  console.log('Showing About dialog')
-
+  if (doOpenAbout) {
+    doOpenAbout()
+    return
+  }
   if (window.electronAPI?.showAbout) {
     window.electronAPI.showAbout()
-  } else {
-    // Fallback for development / non-Electron
-    const aboutInfo = `
-Kerykeion Chart
-Version 1.0.0
-
-A simple, standalone offline astrological birth chart application.
-
-Built with:
-• Vue 3 + PrimeVue + Tailwind
-• Kerykeion (Swiss Ephemeris)
-• Python FastAPI + Electron
-
-© 2026 - All Rights Reserved
-    `.trim()
-
-    alert(aboutInfo)
   }
 }
 </script>
