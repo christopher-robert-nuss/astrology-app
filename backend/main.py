@@ -15,6 +15,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, List, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
@@ -28,9 +29,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from kerykeion import AstrologicalSubjectFactory, ChartDataFactory
+from kerykeion.astrological_subject_factory import ephemeris_context as _kerykeion_ephemeris_context
 from kerykeion.charts.chart_drawer import ChartDrawer
 from kerykeion.settings.config_constants import DEFAULT_ACTIVE_ASPECTS
 from timezonefinder import TimezoneFinder
+import kerykeion.astrological_subject_factory as _kerykeion_subject_factory
 
 # ---------------------------------------------------------------------------
 # Application & constants
@@ -84,22 +87,34 @@ DEFAULT_ASPECTS_ENABLED = {name: False for name in SUPPORTED_ASPECTS}
 # ---------------------------------------------------------------------------
 
 
+def _env_path(name: str) -> Optional[Path]:
+    """Return an expanded path from an environment variable, or None if unset/blank."""
+    configured = os.getenv(name)
+    if not configured or not configured.strip():
+        return None
+    return Path(configured).expanduser().resolve()
+
+
 def _get_app_data_root() -> Path:
     """
     Return the platform-specific root directory for app user data.
 
     Override with the ASTROLOGY_APP_DATA_ROOT environment variable.
     """
-    configured = os.getenv("ASTROLOGY_APP_DATA_ROOT")
-    if configured:
-        return Path(configured).expanduser().resolve()
+    configured = _env_path("ASTROLOGY_APP_DATA_ROOT")
+    if configured is not None:
+        return configured
 
     if sys.platform == "win32":
-        base_dir = Path(os.getenv("APPDATA", Path.home()))
+        # Prefer APPDATA, but ignore empty values so we never fall back to cwd
+        # under a non-writable install directory (common for packaged Windows apps).
+        appdata = os.getenv("APPDATA")
+        base_dir = Path(appdata) if appdata and appdata.strip() else Path.home() / "AppData" / "Roaming"
     elif sys.platform == "darwin":
         base_dir = Path.home() / "Library" / "Application Support"
     else:
-        base_dir = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
+        xdg = os.getenv("XDG_CONFIG_HOME")
+        base_dir = Path(xdg) if xdg and xdg.strip() else Path.home() / ".config"
 
     return base_dir / "simple-astrology-app"
 
@@ -110,9 +125,9 @@ def _get_preferences_path() -> Path:
 
     Override with the ASTROLOGY_APP_PREFERENCES_PATH environment variable.
     """
-    configured_path = os.getenv("ASTROLOGY_APP_PREFERENCES_PATH")
-    if configured_path:
-        return Path(configured_path).expanduser().resolve()
+    configured_path = _env_path("ASTROLOGY_APP_PREFERENCES_PATH")
+    if configured_path is not None:
+        return configured_path
     return _get_app_data_root() / "preferences.json"
 
 
@@ -122,9 +137,9 @@ def _get_ephemeris_dir() -> Path:
 
     Override with the ASTROLOGY_APP_EPHE_DIR environment variable.
     """
-    configured = os.getenv("ASTROLOGY_APP_EPHE_DIR")
-    if configured:
-        return Path(configured).expanduser().resolve()
+    configured = _env_path("ASTROLOGY_APP_EPHE_DIR")
+    if configured is not None:
+        return configured
     return _get_app_data_root() / "ephe"
 
 
@@ -135,10 +150,77 @@ def _get_data_dir() -> Path:
     Override with the ASTROLOGY_APP_DATA_DIR environment variable.
     Defaults to ../frontend/public relative to this file.
     """
-    configured_path = os.getenv("ASTROLOGY_APP_DATA_DIR")
-    if configured_path:
-        return Path(configured_path).expanduser().resolve()
+    configured_path = _env_path("ASTROLOGY_APP_DATA_DIR")
+    if configured_path is not None:
+        return configured_path
     return (Path(__file__).resolve().parent / "../frontend/public").resolve()
+
+
+def _swisseph_path_str(ephe_dir: Path) -> str:
+    """Format an ephemeris directory for pyswisseph (forward slashes work on Windows)."""
+    return str(ephe_dir.resolve()).replace("\\", "/")
+
+
+def _swisseph_search_path(ephe_dir: Path) -> str:
+    """
+    Build the Swiss Ephemeris search path.
+
+    Prefer the app's persistent download directory, and append Kerykeion's
+    bundled sweph/ when present so support files like sefstars.txt remain
+    available without re-downloading them.
+    """
+    paths = [_swisseph_path_str(ephe_dir)]
+    try:
+        import kerykeion
+    except ImportError:
+        kerykeion = None
+    if kerykeion is not None:
+        kery_sweph = Path(kerykeion.__file__).resolve().parent / "sweph"
+        if kery_sweph.is_dir():
+            kery_path = _swisseph_path_str(kery_sweph)
+            if kery_path not in paths:
+                paths.append(kery_path)
+
+    separator = ";" if sys.platform == "win32" else ":"
+    return separator.join(paths)
+
+
+def _certifi_ca_path() -> str:
+    """Return a CA bundle path that works in source runs and PyInstaller builds."""
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            bundled = Path(meipass) / "certifi" / "cacert.pem"
+            if bundled.is_file():
+                return str(bundled)
+    return certifi.where()
+
+
+def _point_kerykeion_at_ephe_dir(ephe_dir: Path) -> None:
+    """
+    Make Kerykeion use our persistent ephemeris directory.
+
+    AstrologicalSubjectFactory hardcodes Path(__file__)/sweph, which only ships
+    a few support files and is unreliable in frozen Windows builds. Redirect its
+    ephemeris_context to the directory we download into.
+    """
+    path_str = _swisseph_search_path(ephe_dir)
+    existing = _kerykeion_subject_factory.ephemeris_context
+    if getattr(existing, "_astrology_app_patched", False):
+        existing._astrology_app_ephe_dir = path_str
+        return
+
+    original = _kerykeion_ephemeris_context
+
+    @contextmanager
+    def _patched_ephemeris_context(ephe_path: str, *args, **kwargs):
+        del ephe_path  # ignore Kerykeion's bundled sweph path
+        with original(_patched_ephemeris_context._astrology_app_ephe_dir, *args, **kwargs) as iflag:
+            yield iflag
+
+    _patched_ephemeris_context._astrology_app_patched = True
+    _patched_ephemeris_context._astrology_app_ephe_dir = path_str
+    _kerykeion_subject_factory.ephemeris_context = _patched_ephemeris_context
 
 
 # ---------------------------------------------------------------------------
@@ -148,7 +230,8 @@ def _get_data_dir() -> Path:
 # Required .se1 files are downloaded on first use for a given 600-year block
 # and stored permanently under the user data directory:
 #   <app-data-root>/ephe/
-# Kerykeion is pointed at this directory via swe.set_ephe_path().
+# Kerykeion is redirected to this directory (it otherwise hardcodes its own
+# incomplete sweph/ package path).
 # ---------------------------------------------------------------------------
 
 
@@ -177,8 +260,12 @@ def _year_to_ephe_prefix(year: int) -> str:
     return f"m{block_start // 100:02d}"
 
 
-def _required_ephe_files(year: int, include_asteroids: bool = False) -> List[str]:
-    """Return the list of .se1 filenames needed for a birth year."""
+def _required_ephe_files(year: int, include_asteroids: bool = True) -> List[str]:
+    """Return the list of .se1 filenames needed for a birth year.
+
+    Asteroid files are included by default because Kerykeion's default active
+    points include Chiron, which reads seas_*.se1.
+    """
     prefix = _year_to_ephe_prefix(year)
     files = [
         f"sepl_{prefix}.se1",
@@ -190,9 +277,38 @@ def _required_ephe_files(year: int, include_asteroids: bool = False) -> List[str
 
 
 def _get_bundled_ephe_dir() -> Optional[Path]:
-    """Return the repository's bundled ephemeris directory if present."""
-    candidate = (Path(__file__).resolve().parent / "../ephe").resolve()
-    return candidate if candidate.exists() else None
+    """Return a local bundled ephemeris directory if present (dev tree or next to the exe)."""
+    candidates = [
+        (Path(__file__).resolve().parent / "../ephe").resolve(),
+    ]
+    if getattr(sys, "frozen", False):
+        candidates.insert(0, Path(sys.executable).resolve().parent / "ephe")
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            candidates.append(Path(meipass) / "ephe")
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _local_ephe_source_dirs() -> List[Path]:
+    """Directories that may already contain ephemeris files (dev tree or Kerykeion)."""
+    sources: List[Path] = []
+    bundled_dir = _get_bundled_ephe_dir()
+    if bundled_dir is not None:
+        sources.append(bundled_dir)
+
+    try:
+        import kerykeion
+    except ImportError:
+        return sources
+
+    kery_sweph = Path(kerykeion.__file__).resolve().parent / "sweph"
+    if kery_sweph.is_dir() and kery_sweph not in sources:
+        sources.append(kery_sweph)
+    return sources
 
 
 def _ensure_ephe_file_available(filename: str, dest_dir: Path) -> bool:
@@ -201,13 +317,12 @@ def _ensure_ephe_file_available(filename: str, dest_dir: Path) -> bool:
     if dest.exists() and dest.stat().st_size > 10_000:
         return True
 
-    bundled_dir = _get_bundled_ephe_dir()
-    if bundled_dir is not None:
-        bundled_file = bundled_dir / filename
-        if bundled_file.exists() and bundled_file.stat().st_size > 10_000:
+    for source_dir in _local_ephe_source_dirs():
+        source_file = source_dir / filename
+        if source_file.exists() and source_file.stat().st_size > 10_000:
             dest_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(bundled_file, dest)
-            print(f"[Ephemeris] Copied {filename} from bundled data")
+            shutil.copy2(source_file, dest)
+            print(f"[Ephemeris] Copied {filename} from {source_dir}")
             return True
 
     return False
@@ -233,7 +348,7 @@ def _download_ephe_file(filename: str, dest_dir: Path) -> None:
         headers={"User-Agent": "simple-astrology-app/0.0.1"},
     )
     last_error = None
-    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    ssl_context = ssl.create_default_context(cafile=_certifi_ca_path())
 
     for attempt in range(1, 4):
         try:
@@ -248,7 +363,7 @@ def _download_ephe_file(filename: str, dest_dir: Path) -> None:
                     f"Downloaded {filename} is too small ({len(data)} bytes)"
                 )
             tmp.write_bytes(data)
-            tmp.replace(dest)
+            os.replace(tmp, dest)
             print(f"[Ephemeris] Saved {filename} ({len(data):,} bytes)")
             return
         except urllib.error.HTTPError as error:
@@ -268,23 +383,26 @@ def _download_ephe_file(filename: str, dest_dir: Path) -> None:
     ) from last_error
 
 
-def ensure_ephemeris_for_year(year: int, include_asteroids: bool = False) -> Path:
+def ensure_ephemeris_for_year(year: int, include_asteroids: bool = True) -> Path:
     """
     Ensure the required Swiss Ephemeris files for `year` exist locally,
-    then point pyswisseph at that directory.
+    then point pyswisseph and Kerykeion at that directory.
 
     Returns the ephemeris directory that was used.
     """
     with _ephe_lock:
         ephe_dir = _get_ephemeris_dir()
+        ephe_dir.mkdir(parents=True, exist_ok=True)
         required = _required_ephe_files(year, include_asteroids=include_asteroids)
 
         for fname in required:
             if not _ensure_ephe_file_available(fname, ephe_dir):
                 _download_ephe_file(fname, ephe_dir)
 
-        swe.set_ephe_path(str(ephe_dir))
-        print(f"[Ephemeris] Using path: {ephe_dir}")
+        path_str = _swisseph_search_path(ephe_dir)
+        swe.set_ephe_path(path_str)
+        _point_kerykeion_at_ephe_dir(ephe_dir)
+        print(f"[Ephemeris] Using path: {path_str}")
         return ephe_dir
 
 
@@ -932,11 +1050,12 @@ async def ephemeris_status():
 
 
 @app.post("/ephemeris/ensure")
-async def ephemeris_ensure(year: int, include_asteroids: bool = False):
+async def ephemeris_ensure(year: int, include_asteroids: bool = True):
     """
     Ensure the required ephemeris files for a given year are present.
 
-    Useful for pre-downloading or testing.
+    Asteroid files are included by default (needed for Chiron). Useful for
+    pre-downloading or testing.
     """
     try:
         path = ensure_ephemeris_for_year(year, include_asteroids=include_asteroids)

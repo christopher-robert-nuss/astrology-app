@@ -197,13 +197,18 @@ async function startBackend() {
     if (isQuitting) throw new Error('Backend startup cancelled because the app is quitting')
 
     await new Promise((resolve, reject) => {
+      const userData = app.getPath('userData')
       backendProcess = spawn(launch.command, launch.args, {
         cwd: launch.cwd,
         env: {
           ...process.env,
           PORT: String(backendPort),
-          ASTROLOGY_APP_DATA_DIR: app.getPath('userData'),
-          ASTROLOGY_APP_PREFERENCES_PATH: path.join(app.getPath('userData'), 'preferences.json'),
+          // Keep all persistent backend paths under Electron userData so packaged
+          // Windows installs never try to write beside Program Files resources.
+          ASTROLOGY_APP_DATA_ROOT: userData,
+          ASTROLOGY_APP_DATA_DIR: userData,
+          ASTROLOGY_APP_EPHE_DIR: path.join(userData, 'ephe'),
+          ASTROLOGY_APP_PREFERENCES_PATH: path.join(userData, 'preferences.json'),
         },
       })
 

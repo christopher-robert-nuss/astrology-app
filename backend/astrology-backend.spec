@@ -56,6 +56,12 @@ a = Analysis(
             str(KERYKEION_DIR / "charts" / "templates"),
             "kerykeion/charts/templates",
         ),
+        # Support files (seas_*.se1, sefstars.txt). Planet/moon blocks are still
+        # downloaded on demand into the user data directory.
+        (
+            str(KERYKEION_DIR / "sweph"),
+            "kerykeion/sweph",
+        ),
         (certifi.where(), "certifi"),
     ],
     hiddenimports=["kerykeion", "swisseph"],

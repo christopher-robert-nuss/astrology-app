@@ -1,8 +1,18 @@
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
 import backend.main as backend_main
 from backend.main import app
+
+
+@pytest.fixture(autouse=True)
+def restore_kerykeion_ephemeris_context():
+    """Keep Kerykeion's ephemeris_context pristine between tests."""
+    original = backend_main._kerykeion_ephemeris_context
+    yield
+    backend_main._kerykeion_subject_factory.ephemeris_context = original
 
 
 @pytest.fixture
@@ -14,6 +24,47 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("ASTROLOGY_APP_DATA_DIR", str(tmp_path / "frontend-public"))
     with TestClient(app) as test_client:
         yield test_client
+
+
+def test_empty_appdata_does_not_resolve_ephe_relative_to_cwd(monkeypatch, tmp_path):
+    monkeypatch.delenv("ASTROLOGY_APP_EPHE_DIR", raising=False)
+    monkeypatch.delenv("ASTROLOGY_APP_DATA_ROOT", raising=False)
+    monkeypatch.setattr(backend_main.sys, "platform", "win32")
+    monkeypatch.setenv("APPDATA", "")
+    monkeypatch.setattr(backend_main.Path, "home", staticmethod(lambda: tmp_path))
+
+    ephe_dir = backend_main._get_ephemeris_dir()
+
+    assert ephe_dir == tmp_path / "AppData" / "Roaming" / "simple-astrology-app" / "ephe"
+    assert Path.cwd() not in ephe_dir.parents
+    assert ephe_dir != Path.cwd() / "simple-astrology-app" / "ephe"
+
+
+def test_ensure_ephemeris_points_kerykeion_at_app_ephe_dir(tmp_path, monkeypatch):
+    ephe_dir = tmp_path / "ephe"
+    monkeypatch.setenv("ASTROLOGY_APP_EPHE_DIR", str(ephe_dir))
+    monkeypatch.setattr(
+        backend_main,
+        "_ensure_ephe_file_available",
+        lambda filename, dest_dir: True,
+    )
+
+    result = backend_main.ensure_ephemeris_for_year(1972)
+
+    assert result == ephe_dir.resolve()
+    patched = backend_main._kerykeion_subject_factory.ephemeris_context
+    assert getattr(patched, "_astrology_app_patched", False) is True
+    expected_path = backend_main._swisseph_search_path(ephe_dir)
+    assert patched._astrology_app_ephe_dir == expected_path
+    assert backend_main._swisseph_path_str(ephe_dir) in patched._astrology_app_ephe_dir.split(
+        ";" if backend_main.sys.platform == "win32" else ":"
+    )
+
+
+def test_swisseph_path_str_uses_forward_slashes(tmp_path):
+    path = backend_main._swisseph_path_str(tmp_path / "ephe")
+    assert "\\" not in path
+    assert path.endswith("ephe")
 
 
 def test_preferences_endpoint_returns_defaults(client):
