@@ -11,6 +11,10 @@
       }
     },
     {
+      "label": "Checksum Howto",
+      "page": "checksum_howto.md"
+    },
+    {
       "label": "About",
       "page": "about.md"
     }
