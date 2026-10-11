@@ -18,3 +18,4 @@ Christopher Robert Nuss - Javascript developer based in Australia.
 ### LLMs
 
 - MS Copilot (various models)
+- Grok Build (4.5, 4.6, 4.7)

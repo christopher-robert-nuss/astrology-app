@@ -5,10 +5,20 @@
       "page": "introduction.md"
     },
     {
-      "label": "Birth Charts",
-      "autogenerate": {
-        "directory": "Birth_Charts"
-      }
+      "label": "Enter Birth Data",
+      "page": "enter_birth_data.md"
+    },
+    {
+      "label": "Read the Chart",
+      "page": "read_the_chart.md"
+    },
+    {
+      "label": "Preferences",
+      "page": "preferences.md"
+    },
+    {
+      "label": "Save, Load, and Print",
+      "page": "save_load_print.md"
     },
     {
       "label": "Checksum Howto",
