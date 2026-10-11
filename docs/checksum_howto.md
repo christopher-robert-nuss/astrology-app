@@ -2,12 +2,12 @@
 
 Use this when you download Simple Astrology App and want to be sure the file was not changed on the way to your computer. A checksum is a fingerprint of the file. If the download is cut short, or if someone swaps the installer, the fingerprint no longer matches the one published with the download.
 
-The installers are on the Download section of [crn.net.au/simple-astrology](https://crn.net.au/simple-astrology#download). That section has `id="download"`. Each download button has its SHA-256 checksum directly underneath it.
+The installers and checksums are on the Download section of [crn.net.au/simple-astrology](https://crn.net.au/simple-astrology#download). Each opperating system download button has its SHA-256 checksum directly underneath it.
 
 - Debian Linux: `simple-astrology-app_<version>_amd64.deb`
 - Windows: `Simple Astrology App Setup <version>.exe`
 
-`<version>` is the version offered on that page, such as `0.0.1`. Check the file you actually downloaded. There is no macOS build and no AppImage.
+`<version>` is the version offered on that page, such as `0.0.1`. Check the file you actually downloaded.
 
 Copy the checksum from under the button for the file you downloaded. SHA-256 is 64 hexadecimal characters. Capital and lowercase letters are the same value. A checksum copied from an email or forum post does not check this download.
 
@@ -61,4 +61,4 @@ Do not install the file. Download it again from the Download section and compute
 
 If the new download still does not match the checksum under that download button, stop. Something is wrong with the file you received or with the page you copied the checksum from.
 
-A matching checksum means the file is the one described by the value under the download button. That is the check for the installers published on this site.
+A matching checksum means the file is the one described by the value under the download button.
