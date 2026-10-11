@@ -6,6 +6,6 @@ I wrote this software initially because I could not find a compiled, binary appl
 Simple Astrology App is open source software released under the MIT License. You are free to download the source code here.
 :::
 
-Please let me know if you like this application or if it doesn't work for you! You can log an issue on my github page here if you find a bug or even if you would like a feature added to the software. You can also click the star button on the github page if you like this software. I am a father, an electrician and a one person software programmer so I may not be able to respond in a commercially timed manner to any issues or requests but I will respond nether the less.
+Please let me know if you like this application or if it doesn't work for you! You can log an issue on my github page [here](https://github.com/christopher-robert-nuss/astrology-app/issues) if you find a bug or even if you would like a feature added to the software. You can also click the star button on the github page if you like this software. I am a father, an electrician and a one person software programmer so I may not be able to respond in a commercially timed manner to any issues or requests but I will respond nether the less.
 
 Once again, thank you for your time and I hope that you find this software useful and enjoyable. 
